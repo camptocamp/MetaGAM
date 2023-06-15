@@ -8,7 +8,7 @@ job-1:
   tags:
     - qgistest
   script:
-    - /bin/sh -c "./test.sh"
+    - ./test.sh
 
 job-linter:
   stage: pyStage
@@ -16,4 +16,6 @@ job-linter:
   tags:
     - qgistest
   script:
-    - /bin/sh -c "python3 -m pylint TestPy.py"
+    - python -m pylint TestPy.py
+
+
