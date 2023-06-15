@@ -4,8 +4,6 @@ stages:
 
 job-1:
   stage: monstage
-  tags:
-    - qgistest
   script:
     - ./test.sh
   rules:
