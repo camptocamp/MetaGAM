@@ -8,10 +8,7 @@ job-1:
   script:
     - ./test.sh
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_REF_NAME == "Amr_TEST_2"'
-      when: always
-    - if: '$CI_PIPELINE_SOURCE != "merge_request_event"'
-      when: never
+    - when: always
 
 job-linter:
   stage: pyStage
@@ -20,12 +17,11 @@ job-linter:
     - apt-get update && apt-get install -y pylint
     - pylint TestPy.py
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_REF_NAME == "Amr_TEST_2"'
-      when: always
+    - when: always
 
 job-testunit:
   stage: monstage
-  image: 
+  image:
     name: qgis/qgis:latest
     entrypoint: [ '/bin/bash', '-c', 'ln -snf /bin/bash /bin/sh && /bin/bash -c $0' ]
   services:
@@ -33,5 +29,4 @@ job-testunit:
   script:
     - python -m unittest TestPy.py
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_COMMIT_REF_NAME == "Amr_TEST_2"'
-      when: always
+    - when: always
