@@ -16,4 +16,4 @@ job-linter:
   tags:
     - qgistest
   script:
-    - python3 -m pylint TestPy.py
+    - python -m pylint TestPy.py
