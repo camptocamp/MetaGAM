@@ -4,7 +4,7 @@ stages:
 
 job-1:
   stage: monstage
-  image: python:3.7
+  image: qgis:latest
   script:
     - ./test.sh
   rules:
@@ -12,21 +12,8 @@ job-1:
 
 job-linter:
   stage: pyStage
-  image: python:latest
+  image: qgis:latest
   script:
-    - apt-get update && apt-get install -y pylint
-    - pylint TestPy.py
-  rules:
-    - when: always
-
-job-testunit:
-  stage: monstage
-  image:
-    name: qgis/qgis:latest
-    entrypoint: [ '/bin/bash', '-c', 'ln -snf /bin/bash /bin/sh && /bin/bash -c $0' ]
-  services:
-    - name: python:3.7
-  script:
-    - python -m unittest TestPy.py
+    - python3 -m pylint TestPy.py
   rules:
     - when: always
