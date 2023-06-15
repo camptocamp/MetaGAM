@@ -4,7 +4,7 @@ stages:
 
 job-1:
   stage: monstage
-  image: python:latest
+  image: bash:latest
   tags:
     - qgistest
   script:
@@ -12,8 +12,8 @@ job-1:
 
 job-linter:
   stage: pyStage
-  image: python:latest
+  image: bash:latest
   tags:
     - qgistest
   script:
-    - /usr/local/bin/python3 -m pylint TestPy.py
+    - python3 -m pylint TestPy.py
