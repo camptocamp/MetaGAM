@@ -4,6 +4,8 @@ stages:
 
 job-1:
   stage: monstage
+  variables:
+    DOCKER_DRIVER: overlay2
   tags:
     - qgistest
   script:
@@ -13,6 +15,8 @@ job-1:
 
 job-linter:
   stage: pyStage
+  variables:
+    DOCKER_DRIVER: overlay2
   tags:
     - qgistest
   script:
