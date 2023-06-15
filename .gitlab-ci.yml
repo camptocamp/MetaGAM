@@ -1,11 +1,17 @@
 stages:
+  - pyStage
   - monstage
 
 job-1:
   stage: monstage
   image: python:latest
-  tags:
-    - qgistest
   script:
     - ./test.sh
+
+job-linter:
+  stage: pyStage
+  image: python:latest
+  script:
+    - python -m pylint TestPy.py
+
 
