@@ -4,18 +4,16 @@ stages:
 
 job-1:
   stage: monstage
-  image: python:3.7
+  image: python:latest
   tags:
     - qgistest
   script:
-    - ./test.sh
+    - /bin/sh -c "./test.sh"
 
 job-linter:
   stage: pyStage
-  image: python:3.7
+  image: python:latest
   tags:
     - qgistest
   script:
-    - python3 -m pylint TestPy.py
-
-
+    - /bin/sh -c "python3 -m pylint TestPy.py"
