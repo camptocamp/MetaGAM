@@ -1,5 +1,4 @@
 stages:
-  - pyStage
   - monstage
 
 job-1:
@@ -8,14 +7,5 @@ job-1:
   tags:
     - qgistest
   script:
-    - echo TEST
-
-job-linter:
-  stage: pyStage
-  image: python:latest
-  tags:
-    - qgistest
-  script:
-    - echo TEST
-
+    - ./test.sh
 
