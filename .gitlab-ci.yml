@@ -8,8 +8,6 @@ job-1:
     - qgistest
   script:
     - ./test.sh
-  rules:
-    - when: always
 
 job-linter:
   stage: pyStage
