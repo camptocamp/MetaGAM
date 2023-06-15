@@ -11,7 +11,7 @@ def count_entities(layer: QgsVectorLayer) -> int:
         layer (QgsVectorLayer): La couche vectorielle à compter.
 
     Returns:
-        int: Le nombre total d'entités dans la couche.
+        int: Le nombre total d'entités dans la couche..
     """
     entity_count = 0
 
