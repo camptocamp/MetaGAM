@@ -3,14 +3,14 @@ stages:
   - monstage
 
 job-1:
-  stage: monstage
+  stage: pyStage
   tags:
     - qgistest
   script:
     - docker images
 
 job-linter:
-  stage: pyStage
+  stage: monstage
   image: python:latest
   tags:
     - qgistest
