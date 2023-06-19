@@ -4,11 +4,10 @@ stages:
 
 job-1:
   stage: monstage
-  image: python:latest
   tags:
     - qgistest
   script:
-    - ./test.sh
+    - docker images
 
 job-linter:
   stage: pyStage
