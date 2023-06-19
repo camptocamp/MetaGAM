@@ -2,7 +2,7 @@ stages:
   - pyStage
   - monstage
 
-job-1:
+job-2:
   stage: pyStage
   tags:
     - qgistest
