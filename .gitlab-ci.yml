@@ -16,3 +16,4 @@ job-linter:
     - qgistest
   script:
     - python3 -m pylint TestPy.py
+ 
