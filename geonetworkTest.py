@@ -1,6 +1,6 @@
 
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 from geonetworkDate import getMetaDateGN
 
 class TestGetMetaDateGN(unittest.TestCase):
