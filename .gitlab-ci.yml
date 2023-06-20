@@ -27,4 +27,13 @@ job-linter:
   script:
     #- sudo pip install pylint
     - python3 -m unittest test_calcul.py
+
+job-unitTest_geonetwork:
+  stage: pyStage
+  image: qgisservergam:latest
+  tags:
+    - qgistest
+  script:
+    #- sudo pip install pylint
+    - python3 -m unittest geonetworkTest.py
  
