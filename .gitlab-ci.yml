@@ -9,7 +9,7 @@ before_script:
   - cp /etc/gitlab-runner/certs/* /usr/local/share/ca-certificates
   - update-ca-certificates
   - export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
- # - apt-get update -y && apt-get install -y sshpass python3-pip
+  - apt-get update -y && apt-get install -y sshpass python3-pip
 
 job-1:
   stage: monstage
@@ -20,11 +20,10 @@ job-1:
 
 job-linter:
   stage: pyStage
-  image: qgis-server
+  image: qgisservergam:latest
   tags:
     - qgistest
   script:
-   # - pip install pylint
-    #- python3 -m pylint TestPy.py
-    - docker run qgis-server ./TestPy.py
+    - pip install pylint
+    - python3 -m pylint TestPy.py
  
