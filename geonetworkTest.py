@@ -6,7 +6,7 @@ from geonetworkDate import getMetaDateGN
 class TestGetMetaDateGN(unittest.TestCase):
     @patch('geonetworkDate.connexionGeonetwork')
     @patch('geonetworkDate.requests.get')
-    def test_getMetaDateGN(self):
+    def test_getMetaDateGN(self,connexionGeonetwork_mock, requests_get_mock):
         # Préparer les données de test
         user = "TestCICD"
         password = "Git12345@"
