@@ -160,6 +160,7 @@ def getMetaDateGN(user,password,uuid):
     headersGN = connexionGN[3]
     headersGN["Accept"] = "application/xml"
     headersGN["Content-Type"] = "application/xml"
+    response = None
     if userGroup == None:
         response = requests.get(connexionGN[1]+"/srv/api/records/"+uuid+"/formatters/xml?addSchemaLocation=false&increasePopularity=false&approved=false", 
                 headers=headersGN,
