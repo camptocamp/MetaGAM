@@ -166,7 +166,7 @@ def getMetaDateGN(user,password,uuid):
                 headers=headersGN,
                 cookies = {"XSRF-TOKEN": connexionGN[2]},
                 auth=(connexionGN[4],connexionGN[5]))
-    if response.status_code == 200:
+    if response is not None and response.status_code == 200:
         reponse_xml = response.text
         root = ET.fromstring(reponse_xml)
         date_element = root.find(".//{http://www.isotc211.org/2005/gco}Date")
