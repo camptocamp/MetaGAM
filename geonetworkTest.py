@@ -4,6 +4,8 @@ from unittest.mock import Mock
 from geonetworkDate import getMetaDateGN
 
 class TestGetMetaDateGN(unittest.TestCase):
+    @patch('geonetworkDate.connexionGeonetwork')
+    @patch('geonetworkDate.requests.get')
     def test_getMetaDateGN(self):
         # Préparer les données de test
         user = "TestCICD"
