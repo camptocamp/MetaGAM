@@ -4,6 +4,8 @@ stages:
 
 
 before_script:
+  - unset http_proxy 
+  - unset https_proxy
   - cp /etc/gitlab-runner/certs/* /usr/local/share/ca-certificates
   - update-ca-certificates
   - export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
