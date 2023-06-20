@@ -10,7 +10,7 @@ before_script:
   #- cp /etc/gitlab-runner/certs/* /usr/local/share/ca-certificates
   #- update-ca-certificates
   - export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
-  - apt-get update -y && apt-get install -y sshpass python3-pip
+  - sudo apt-get update -y && sudo apt-get install -y sshpass python3-pip
 
 job-1:
   stage: monstage
@@ -25,6 +25,6 @@ job-linter:
   tags:
     - qgistest
   script:
-    - pip install pylint
+    - sudo pip install pylint
     - python3 -m pylint TestPy.py
  
