@@ -32,7 +32,7 @@ from qgis.PyQt import QtWidgets, QtCore, QtGui
 from qgis.PyQt.QtWidgets import *
 import requests
 from requests.structures import CaseInsensitiveDict
-from pandas import *
+#from pandas import *
 from qgis.core import QgsVectorFileWriter
 import json
 import xml.etree.ElementTree as ET
