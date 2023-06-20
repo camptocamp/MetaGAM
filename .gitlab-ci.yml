@@ -25,6 +25,6 @@ job-linter:
   tags:
     - qgistest
   script:
-    - sudo pip install pylint
-    - python3 -m pylint TestPy.py
+    #- sudo pip install pylint
+    - python3 -m unittest test_calcul.py
  
