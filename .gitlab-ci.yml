@@ -11,7 +11,7 @@ job-1:
 
 job-linter:
   stage: pyStage
-  image: python:latest
+  image: qgis-server
   tags:
     - qgistest
   script:
