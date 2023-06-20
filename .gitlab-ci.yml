@@ -15,7 +15,7 @@ job-linter:
   tags:
     - qgistest
   script:
-    - apt install pip
+    - apt install python3-pip
     - pip install pylint
     - python3 -m pylint TestPy.py
  
