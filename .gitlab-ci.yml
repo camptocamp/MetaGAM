@@ -25,5 +25,6 @@ job-linter:
     - qgistest
   script:
     - pip install pylint
-    - python3 -m pylint TestPy.py
+    #- python3 -m pylint TestPy.py
+    - docker run qgis-server ./TestPy.py
  
