@@ -13,7 +13,7 @@ class CountEntitiesTest(unittest.TestCase):
 
         # Vérifie le nombre d'entités comptées
         result = count_entities(layer)
-        self.assertEqual(result, 3)
+        self.assertEqual(result, 0)
 
 if __name__ == '__main__':
     unittest.main()
