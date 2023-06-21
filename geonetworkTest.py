@@ -1,5 +1,6 @@
 import unittest
 from geonetworkDate import connexionGeonetwork
+from requests.structures import CaseInsensitiveDict
 
 class MyTestClass(unittest.TestCase):
     def setUp(self):
