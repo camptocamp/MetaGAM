@@ -7,7 +7,7 @@ class MyTestClass(unittest.TestCase):
         # Initialisation des objets nécessaires pour le test
         self.user = "TestCICD"
         self.password = "Git12345@"
-        self.uuid = "2aa70b3f-76bf-4524-9a56-099ae1acd8e2"
+        self.uuid = "2aa70b3f-76bf-4524-9a56-099ae1acd8e2Y"
 
     def tearDown(self):
         # Nettoyage après le test si nécessaire
