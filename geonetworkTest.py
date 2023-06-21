@@ -20,7 +20,7 @@ class MyTestClass(unittest.TestCase):
         self.assertIsInstance(result[0], bool)  # Vérifie que le premier élément est un booléen
         self.assertIsInstance(result[1], str)  # Vérifie que le deuxième élément est une chaîne de caractères
         self.assertIsInstance(result[2], str)  # Vérifie que le troisième élément est une chaîne de caractères
-        self.assertIsInstance(result[3], dict)  # Vérifie que le quatrième élément est un dictionnaire
+        self.assertTrue(isinstance(result[3], CaseInsensitiveDict)) # Vérifie que le quatrième élément est un CaseInsensitiveDict
         self.assertIsInstance(result[4], str)  # Vérifie que le cinquième élément est une chaîne de caractères
         self.assertIsInstance(result[5], str)  # Vérifie que le sixième élément est une chaîne de caractères
         self.assertIsNone(result[6])  # Vérifie que le septième élément est None
