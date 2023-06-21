@@ -18,7 +18,7 @@ class MyTestClass(unittest.TestCase):
 
         # Assertions pour vérifier le comportement attendu
         self.assertEqual(len(result), 7)  # Vérifie le nombre de valeurs renvoyées
-        self.assertIsInstance(result[0], bool)  # Vérifie que le premier élément est un booléen
+        self.assertTrue(result[0])  # Vérifie que la connexion a réussi (result[0] est True)
         self.assertIsInstance(result[1], str)  # Vérifie que le deuxième élément est une chaîne de caractères
         self.assertIsInstance(result[2], str)  # Vérifie que le troisième élément est une chaîne de caractères
         self.assertTrue(isinstance(result[3], CaseInsensitiveDict)) # Vérifie que le quatrième élément est un CaseInsensitiveDict
