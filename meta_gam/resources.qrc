@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/plugins/Meta_GAM" >
+        <file>icon.png</file>
+		<file>admin_icon.png</file>
+    </qresource>
+</RCC>
