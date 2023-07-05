@@ -1,5 +1,5 @@
 import unittest
-from geonetworkDate import connexionGeonetwork, getMetaDateGN
+from ..Meta_GAM_Geonetwork import connexionGeonetwork, getMetaDateGN
 from requests.structures import CaseInsensitiveDict
 
 class MyTestClass(unittest.TestCase):
