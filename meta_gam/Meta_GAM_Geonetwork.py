@@ -28,7 +28,6 @@ from qgis.PyQt import *
 from qgis.PyQt.QtWidgets import *
 import requests
 from requests.structures import CaseInsensitiveDict
-from pandas import *
 import json
 import xml.etree.ElementTree as ET
 
