@@ -1,6 +1,5 @@
 stages:
-  - pyStage
-  - monstage
+  - Geonetwork_stage
 
 
 before_script:
@@ -9,15 +8,8 @@ before_script:
   - export REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
   - sudo apt-get update -y && sudo apt-get install -y sshpass python3-pip
 
-job-1:
-  stage: monstage
-  tags:
-    - qgistest
-  script:
-    - docker images
-
 job-unitTest_geonetwork:
-  stage: pyStage
+  stage: Geonetwork_stage
   image: qgisservergam:latest
   tags:
     - qgistest
