@@ -18,6 +18,6 @@ job-unitTest_geonetwork:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: always
-    - if: $CI_COMMIT_BRANCH == "1-generalisation-de-l-observatoire"
+    - if: $CI_COMMIT_BRANCH == "test"
       when: always
  
