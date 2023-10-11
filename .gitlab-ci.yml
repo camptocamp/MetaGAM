@@ -15,4 +15,9 @@ job-unitTest_geonetwork:
     - qgistest
   script:
     - python3 -m unittest $CI_PROJECT_DIR/meta_gam/test/geonetworkTest.py
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: always
+    - if: $CI_COMMIT_BRANCH == "1-generalisation-de-l-observatoire"
+      when: always
  
