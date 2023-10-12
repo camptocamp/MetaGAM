@@ -197,14 +197,18 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
         return contact_ids
 
     def getMetaID(self, id_objet):
-        connexion = self.ConnexionPostgresql()[1]
-        cur = connexion.cursor()
-        cur.execute(
-            "SELECT metadonnees_id FROM sit_gestion.gest_bdd_rel_objets_thematique WHERE objet_id = %s",
-            (id_objet, ))
-        rows = cur.fetchall()
-        MetaID = [row[0] for row in rows]
-        return MetaID
+        #print('id_objet : ' + id_objet)
+        if id_objet:
+            connexion = self.ConnexionPostgresql()[1]
+            cur = connexion.cursor()
+            cur.execute(
+                "SELECT metadonnees_id FROM sit_gestion.gest_bdd_rel_objets_thematique WHERE objet_id = %s",
+                (id_objet, ))
+            rows = cur.fetchall()
+            #print (rows)
+            MetaID = [row[0] for row in rows]
+            return MetaID
+        return None
 
     def AutoFillMeta(self):
         """_summary_
@@ -491,7 +495,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
         msg.setIcon(QMessageBox.Information)
         msg.setText("Les fiches métadonnées sont remplies!")
         msg.setWindowTitle("Information metadata")
-        msg.exec_()
+        #msg.exec_()
 
     def MetaQgisValidation(self, layer_name):
         """_summary_
@@ -518,7 +522,8 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
     def LayersTree(self):
         """_summary_
         
-        Cette fonction serre à structure l'arbre du plugin (le tableau qui affiche toutes les informations sur les métadonnées). Sans remplir d'information elle définit uniquement sa squelette.
+        Cette fonction serre à structure l'arbre du plugin (le tableau qui affiche toutes les informations sur les métadonnées). 
+        Sans remplir d'information elle définit uniquement sa squelette.
         
         """
         #list_licenses = ["","Licence Ouverte version 2.0","ODC Open Database License (ODbL) version 1.0","Apache License 2.0","BSD 2-Clause (Simplified) License","BSD 3-Clause (New) or (Revised) License","CeCILL-B Free Software License Agreement","MIT License","CeCILL Free Software License Agreement v2.1","CeCILL-C Free Software License Agreement","GNU General Public License v3.0 or later","GNU Lesser General Public License v3.0 or later","GNU Affero General Public License v3.0 or later","Mozilla Public License 2.0","Eclipse Public License 2.0","European Union Public License 1.2"]
@@ -1012,6 +1017,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
             checkbox_status[i] = checkbox.isChecked()
         # Stocker le dictionnaire en tant qu'attribut du plugin
         self.tree_checkbox_status = checkbox_status
+        #print('checkbox : '+ str(checkbox_status) )
 
     def set_tree_checkbox_status(self):
         """_summary_
@@ -1096,6 +1102,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
             layer_name = layer.name()
             layer_meta = layer.metadata()
             uuid = layer_meta.identifier()
+            #print('uuid : %',uuid)
             MetaID = self.getMetaID(uuid)
             if self.tree_checkbox_status != None:
                 if self.tree_checkbox_status.get(i):
@@ -1112,7 +1119,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                     )  # Stocke l'URL dans les données utilisateur
                     self.model.appendRow([item1, item2])
                     Meta_lien = catalogGN + MetaID
-                    update_MetaLink = f"UPDATE sit_gestion.gest_bdd_rel_objets_thematique SET metadonnees_lien = '{Meta_lien}' WHERE metadonnees_id = '{MetaID}'"
+                    update_MetaLink = f"UPDATE sit_gestion.gest_bdd_rel_objets_thematique SET metadonnees_lien = '{Meta_lien}', metadonnees_titre = '{layer_name}' WHERE metadonnees_id = '{MetaID}'"
                     cur.execute(update_MetaLink)
                     connexion.commit()
         cur.close()
@@ -1163,7 +1170,8 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
     def addInspire_to_xml(self):
         """_summary_
         
-        Fonction qui permet de créer le fichier .zip contenant toutes les infromation d'une fiche de métadonnées à l'aide de la fonction createZip. Mais aussi permet d'ajouter les valeurs INSPIRE dans la partie xml de ce fichier.
+        Fonction qui permet de créer le fichier .zip contenant toutes les information d'une fiche de métadonnées à l'aide de la fonction createZip. 
+        Mais aussi permet d'ajouter les valeurs INSPIRE dans la partie xml de ce fichier.
         
         """
         project = QgsProject.instance()
@@ -1175,15 +1183,25 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
             uuid = layer_meta.identifier()
             MetaID = self.getMetaID(uuid)
             Inspire_keywords = self.getTreeInspireVal(layer_name)
-            if self.tree_checkbox_status != None:
-                LayerType = self.getLayerType(layer)
-                LayerDominateur = self.getLayerDenominateur(layer)
-                if self.tree_checkbox_status.get(i):
-                    MetaID = MetaID[0]
-                    datePublication = getMetaDateGN(username, motdepass,
-                                                    MetaID)
-                    createZip(layer_name, MetaID, Inspire_keywords, LayerType,
-                              LayerDominateur, datePublication)
+            self.get_tree_checkbox_status()
+            if MetaID != None:
+                if self.tree_checkbox_status != None:
+                    LayerType = self.getLayerType(layer)
+                    LayerDominateur = self.getLayerDenominateur(layer)
+                    if self.tree_checkbox_status.get(i):
+                        MetaID = MetaID[0]
+                        datePublication = getMetaDateGN(username, motdepass,
+                                                        MetaID)
+                        createZip(layer_name, MetaID, Inspire_keywords, LayerType,
+                                LayerDominateur, datePublication)
+                        print ('''nom layer : '''+ str(layer_name) + '''
+                                uuid : ''' + str(uuid) + '''
+                                UUID méta : '''+ str(MetaID) + '''
+                                Métadonnées : '''+ str(Inspire_keywords) + '''
+                                Type : '''+ str(LayerType) + '''
+                                Dominateur : '''+ str(LayerDominateur) + '''
+                                Date publication : '''+ str(datePublication) + '''
+                                envoi sur geonetwork : OK ''' )                       
 
     def launch_MetaPost(self):
         """_summary_
@@ -1214,7 +1232,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
             msg.setText(
-                "Vous n'avez pas saisie du titre pour la couche à envoyer! \n- Retournez dans ''Gestion de métadonnées'' et ajouter un titre à l'endroit ou il n'y en a pas pour la couche en question. \n- Ensuite sauvegarder les modifications."
+                "Vous n'avez pas saisie un titre pour la couche à envoyer! \n- Retournez dans ''Gestion de métadonnées'' et ajouter un titre à l'endroit ou il n'y en a pas pour la couche en question. \n- Ensuite sauvegarder les modifications."
             )
             msg.setWindowTitle("Erreur!!")
             msg.exec_()
