@@ -145,7 +145,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
     def getMetadataGestionTab(self):
         connexion = self.ConnexionPostgresql()[1]
         cur = connexion.cursor()
-        cur.execute("SELECT * FROM sit_gestion.v_liste_nom_schema_objet")
+        cur.execute("SELECT * FROM sit_hydre.v_liste_nom_schema_objet")
         rows = cur.fetchall()
         columns = [desc[0] for desc in cur.description]
         json = []
@@ -156,7 +156,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
     def getMetadataTab(self):
         connexion = self.ConnexionPostgresql()[1]
         cur = connexion.cursor()
-        cur.execute("SELECT * FROM sit_gestion.gest_bdd_rel_objets_thematique")
+        cur.execute("SELECT * FROM sit_hydre.gest_bdd_rel_objets_thematique")
         rows = cur.fetchall()
         columns = [desc[0] for desc in cur.description]
         json = []
@@ -167,7 +167,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
     def getContactTab(self):
         connexion = self.ConnexionPostgresql()[1]
         cur = connexion.cursor()
-        cur.execute("SELECT * FROM sit_gestion.gest_bdd_contact_referents")
+        cur.execute("SELECT * FROM sit_hydre.gest_bdd_contact_referents")
         rows = cur.fetchall()
         columns = [desc[0] for desc in cur.description]
         json = []
@@ -178,7 +178,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
     def getThematiqueTab(self):
         connexion = self.ConnexionPostgresql()[1]
         cur = connexion.cursor()
-        cur.execute("SELECT * FROM sit_gestion.gest_bdd_thematique")
+        cur.execute("SELECT * FROM sit_hydre.gest_bdd_thematique")
         rows = cur.fetchall()
         columns = [desc[0] for desc in cur.description]
         json = []
@@ -190,7 +190,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
         connexion = self.ConnexionPostgresql()[1]
         cur = connexion.cursor()
         cur.execute(
-            "SELECT contact_referent_id FROM sit_gestion.gest_bdd_rel_thematique_contact_referents WHERE thematique_id = %s",
+            "SELECT contact_referent_id FROM sit_hydre.gest_bdd_rel_thematique_contact_referents WHERE thematique_id = %s",
             (id_thematique, ))
         rows = cur.fetchall()
         contact_ids = [row[0] for row in rows]
@@ -202,7 +202,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
             connexion = self.ConnexionPostgresql()[1]
             cur = connexion.cursor()
             cur.execute(
-                "SELECT metadonnees_id FROM sit_gestion.gest_bdd_rel_objets_thematique WHERE objet_id = %s",
+                "SELECT metadonnees_id FROM sit_hydre.gest_bdd_rel_objets_thematique WHERE objet_id = %s",
                 (id_objet, ))
             rows = cur.fetchall()
             #print (rows)
