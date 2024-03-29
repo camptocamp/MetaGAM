@@ -831,13 +831,13 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                             metadata.setLinks(list_links)
                         else:
                             metadata.setLinks(list_links)
-                update_requete = f"UPDATE sit_gestion.gest_bdd_rel_objets_thematique SET metadonnees = '{{\"licences\": {json.dumps(Licence)},\"categories\": {json.dumps(categories)}, \"mots_clefs\": {json.dumps(mots_clefs)}, \"themes_inspire\": {json.dumps(themes_inspire)}}}' WHERE objet_id = '{id_objet}' AND niveau = 1"
+                update_requete = f"UPDATE sit_hydre.gest_bdd_rel_objets_thematique SET metadonnees = '{{\"licences\": {json.dumps(Licence)},\"categories\": {json.dumps(categories)}, \"mots_clefs\": {json.dumps(mots_clefs)}, \"themes_inspire\": {json.dumps(themes_inspire)}}}' WHERE objet_id = '{id_objet}' AND niveau = 1"
                 if description != None:
                     description = description.replace("'", "''")
-                    update_requete2 = f"UPDATE sit_gestion.gest_bdd_rel_objets_thematique SET metadonnees_commentaire = '{description}' WHERE objet_id = '{id_objet}' AND niveau = 1"
+                    update_requete2 = f"UPDATE sit_hydre.gest_bdd_rel_objets_thematique SET metadonnees_commentaire = '{description}' WHERE objet_id = '{id_objet}' AND niveau = 1"
                     cur.execute(update_requete2)
                 if title != None:
-                    update_title_requete = f"UPDATE sit_gestion.gest_bdd_rel_objets_thematique SET metadonnees_titre = '{title}' WHERE objet_id = '{id_objet}' AND niveau = 1"
+                    update_title_requete = f"UPDATE sit_hydre.gest_bdd_rel_objets_thematique SET metadonnees_titre = '{title}' WHERE objet_id = '{id_objet}' AND niveau = 1"
                     cur.execute(update_title_requete)
                 cur.execute(update_requete)
                 connexion.commit()
@@ -1119,7 +1119,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                     )  # Stocke l'URL dans les données utilisateur
                     self.model.appendRow([item1, item2])
                     Meta_lien = catalogGN + MetaID
-                    update_MetaLink = f"UPDATE sit_gestion.gest_bdd_rel_objets_thematique SET metadonnees_lien = '{Meta_lien}', metadonnees_titre = '{layer_name}' WHERE metadonnees_id = '{MetaID}'"
+                    update_MetaLink = f"UPDATE sit_hydre.gest_bdd_rel_objets_thematique SET metadonnees_lien = '{Meta_lien}', metadonnees_titre = '{layer_name}' WHERE metadonnees_id = '{MetaID}'"
                     cur.execute(update_MetaLink)
                     connexion.commit()
         cur.close()
