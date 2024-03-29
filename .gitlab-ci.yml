@@ -16,8 +16,9 @@ job-unitTest_geonetwork:
   script:
     - python3 -m unittest $CI_PROJECT_DIR/meta_gam/test/geonetworkTest.py
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-      when: always
-    - if: $CI_COMMIT_BRANCH == "test"
-      when: always
+  - if: $CI_COMMIT_BRANCH == "8-kit-migration-plans-topos"
+    when: always
+  - if: $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "test"
+    when: always
+
  
