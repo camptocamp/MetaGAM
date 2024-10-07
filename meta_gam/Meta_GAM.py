@@ -30,6 +30,7 @@ import os
 
 # Initialize Qt resources from file resources.py
 from .resources import *
+
 # Import the code for the dialog
 from .Meta_GAM_dialog import MetaGAMDialog
 from .Meta_GAM_Admin_dialog import Meta_GAM_Admin_dialog
@@ -54,11 +55,10 @@ class MetaGAM:
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
-        locale = QSettings().value('locale/userLocale')[0:2]
+        locale = QSettings().value("locale/userLocale")[0:2]
         locale_path = os.path.join(
-            self.plugin_dir,
-            'i18n',
-            'MetaGAM_{}.qm'.format(locale))
+            self.plugin_dir, "i18n", "MetaGAM_{}.qm".format(locale)
+        )
 
         if os.path.exists(locale_path):
             self.translator = QTranslator()
@@ -67,7 +67,7 @@ class MetaGAM:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u'&MetaGAM')
+        self.menu = self.tr("&MetaGAM")
 
         self.dlg1 = None
         self.dlg2 = None
@@ -88,8 +88,7 @@ class MetaGAM:
         :rtype: QString
         """
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
-        return QCoreApplication.translate('MetaGAM', message)
-
+        return QCoreApplication.translate("MetaGAM", message)
 
     def add_action(
         self,
@@ -101,7 +100,8 @@ class MetaGAM:
         add_to_toolbar=True,
         status_tip=None,
         whats_this=None,
-        parent=None):
+        parent=None,
+    ):
         """Add a toolbar icon to the toolbar.
 
         :param icon_path: Path to the icon for this action. Can be a resource
@@ -157,9 +157,7 @@ class MetaGAM:
             self.iface.addToolBarIcon(action)
 
         if add_to_menu:
-            self.iface.addPluginToMenu(
-                self.menu,
-                action)
+            self.iface.addPluginToMenu(self.menu, action)
 
         self.actions.append(action)
 
@@ -168,35 +166,30 @@ class MetaGAM:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
-
-        icon_path = ':/plugins/Meta_GAM/icon.png'
+        icon_path = ":/plugins/Meta_GAM/icon.png"
         self.add_action(
             icon_path,
-            text=self.tr(u'MetaGAM'),
+            text=self.tr("MetaGAM"),
             callback=self.run,
-            parent=self.iface.mainWindow())
-        
-        
-        icon_path = ':/plugins/Meta_GAM/admin_icon.png'
+            parent=self.iface.mainWindow(),
+        )
+
+        icon_path = ":/plugins/Meta_GAM/admin_icon.png"
         self.add_action(
             icon_path,
-            text=self.tr(u'AdminMenu'),
+            text=self.tr("AdminMenu"),
             callback=self.run_admin,
-            parent=self.iface.mainWindow())
-        
+            parent=self.iface.mainWindow(),
+        )
+
         # will be set False in run()
         self.first_start = True
-
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
-            self.iface.removePluginMenu(
-                self.tr(u'&MetaGAM'),
-                action)
-            self.iface.removePluginMenu(
-                self.tr(u'&AdminMenu'),
-                action)
+            self.iface.removePluginMenu(self.tr("&MetaGAM"), action)
+            self.iface.removePluginMenu(self.tr("&AdminMenu"), action)
             self.iface.removeToolBarIcon(action)
 
     def run(self):
@@ -204,9 +197,9 @@ class MetaGAM:
 
         # Create the dialog with elements (after translation) and keep reference
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
-        #if self.first_start == True:
-            #self.first_start = False
-            #self.dlg = MetaGAMDialog()
+        # if self.first_start == True:
+        # self.first_start = False
+        # self.dlg = MetaGAMDialog()
         if self.dlg1 is None:
             self.dlg1 = MetaGAMDialog()
         # show the dialog
@@ -224,9 +217,9 @@ class MetaGAM:
 
         # Create the dialog with elements (after translation) and keep reference
         # Only create GUI ONCE in callback, so that it will only load when the plugin is started
-        #if self.first_start == True:
-            #self.first_start = False
-            #self.dlg = Meta_GAM_Admin_dialog()
+        # if self.first_start == True:
+        # self.first_start = False
+        # self.dlg = Meta_GAM_Admin_dialog()
         if self.dlg2 is None:
             self.dlg2 = Meta_GAM_Admin_dialog()
 
@@ -239,6 +232,3 @@ class MetaGAM:
             # Do something useful here - delete the line containing pass and
             # substitute with your code.
             pass
-
-
-

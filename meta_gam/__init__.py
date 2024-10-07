@@ -33,4 +33,5 @@ def classFactory(iface):  # pylint: disable=invalid-name
     """
     #
     from .Meta_GAM import MetaGAM
-    return MetaGAM(iface) 
+
+    return MetaGAM(iface)

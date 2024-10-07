@@ -31,11 +31,11 @@ from qgis.PyQt import *
 from PyQt5.QtWidgets import QMessageBox
 
 FORM_CLASS, _ = uic.loadUiType(
-    os.path.join(os.path.dirname(__file__), 'Meta_GAM_Admin_dialog.ui'))
+    os.path.join(os.path.dirname(__file__), "Meta_GAM_Admin_dialog.ui")
+)
 
 
 class Meta_GAM_Admin_dialog(QtWidgets.QDialog, FORM_CLASS):
-
     def __init__(self, parent=None):
         super(Meta_GAM_Admin_dialog, self).__init__(parent)
         self.setupUi(self)
@@ -59,34 +59,36 @@ class Meta_GAM_Admin_dialog(QtWidgets.QDialog, FORM_CLASS):
         res = False
         utilisateur = self.lineEdit.text()
         password = self.mLineEdit.text()
-        db = QSqlDatabase.addDatabase('QPSQL')
-        db.setHostName('bdd-sig.la-metro.org')
+        db = QSqlDatabase.addDatabase("QPSQL")
+        db.setHostName("bdd-sig.la-metro.org")
         db.setPort(5432)
-        db.setDatabaseName('sig')
+        db.setDatabaseName("sig")
         db.setUserName(utilisateur)
         db.setPassword(password)
         if not db.open():
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
-            msg.setText("Erreur de connexion à la base de données: " +
-                        db.lastError().text())
+            msg.setText(
+                "Erreur de connexion à la base de données: " + db.lastError().text()
+            )
             msg.setWindowTitle("Erreur!!")
             msg.exec_()
             return res
-        query = db.exec_("SELECT pg_has_role('" + db.userName() +
-                         "', 'postgres', 'member')")
+        query = db.exec_(
+            "SELECT pg_has_role('" + db.userName() + "', 'postgres', 'member')"
+        )
         query.first()
         is_admin = query.value(0)
         if is_admin:
             res = True
-            return (res)
+            return res
         else:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
             msg.setText("Vous n'êtes pas admin sur la base de données")
             msg.setWindowTitle("Erreur!!")
             msg.exec_()
-            return (res)
+            return res
 
     def checkAdmin(self):
         if self.connexion_Postgis() == True:
@@ -103,7 +105,7 @@ class Meta_GAM_Admin_dialog(QtWidgets.QDialog, FORM_CLASS):
         # Boucler à travers la liste de tous les groupes de couches
         for group in layer_groups:
             root_groups.append(group)
-        return (root_groups)
+        return root_groups
 
     def updateGroups(self):
         # Ajouter les noms de chaque groupe racine à la QComboBox
@@ -115,16 +117,14 @@ class Meta_GAM_Admin_dialog(QtWidgets.QDialog, FORM_CLASS):
     def default_file(self, state):
         # Afficher ou masquer le texte dans QgsFileWidget() selon l'état de coche de QCheckBox()
         if state == 2:  # État de coche activé
-            self.file_project_widget.setFilePath(
-                'S:\QGIS\gam\socle_data_metiers.qgs')
+            self.file_project_widget.setFilePath("S:\QGIS\gam\socle_data_metiers.qgs")
         else:  # État de coche désactivé
-            self.file_project_widget.setFilePath('')
+            self.file_project_widget.setFilePath("")
 
     def filterQgsFiles(self):
-        self.file_project_widget.setFilter('*.qgs')
+        self.file_project_widget.setFilter("*.qgs")
 
-    def copy_layers_to_dest(self, group_name, projet_destination,
-                            projet_source):
+    def copy_layers_to_dest(self, group_name, projet_destination, projet_source):
         # Obtenez la liste des groupes dans le projet source
         source_group = projet_source.layerTreeRoot().findGroup(group_name)
         dest_group = projet_destination.layerTreeRoot().findGroup(group_name)
@@ -142,8 +142,7 @@ class Meta_GAM_Admin_dialog(QtWidgets.QDialog, FORM_CLASS):
         # Vérifie si le groupe existe dans le projet de destination
         destination_project = QgsProject()
         destination_project.read(destination_project_path)
-        destination_group = destination_project.layerTreeRoot().findGroup(
-            group_name)
+        destination_group = destination_project.layerTreeRoot().findGroup(group_name)
         if destination_group is not None:
             new_group = QgsLayerTreeGroup(group_name)
             index = 0
@@ -151,17 +150,13 @@ class Meta_GAM_Admin_dialog(QtWidgets.QDialog, FORM_CLASS):
                 if child_node.name() == group_name:
                     break
                 index += 1
-            destination_project.layerTreeRoot().removeChildNode(
-                destination_group)
-            destination_project.layerTreeRoot().insertChildNode(
-                index, new_group)
-            self.copy_layers_to_dest(group_name, destination_project,
-                                     source_project)
+            destination_project.layerTreeRoot().removeChildNode(destination_group)
+            destination_project.layerTreeRoot().insertChildNode(index, new_group)
+            self.copy_layers_to_dest(group_name, destination_project, source_project)
             destination_project.write()
         else:
             destination_project.layerTreeRoot().addGroup(group_name)
-            self.copy_layers_to_dest(group_name, destination_project,
-                                     source_project)
+            self.copy_layers_to_dest(group_name, destination_project, source_project)
             destination_project.write()
         destination_project.clear()
         del source_project
@@ -169,7 +164,7 @@ class Meta_GAM_Admin_dialog(QtWidgets.QDialog, FORM_CLASS):
     def updateProgressBar(self):
         self.progressBar.setRange(0, 100)
         self.progressBar.setValue(0)
-        if self.file_project_widget.filePath() == '':
+        if self.file_project_widget.filePath() == "":
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
             msg.setText("Vous n'avez pas choisi de projet!")
