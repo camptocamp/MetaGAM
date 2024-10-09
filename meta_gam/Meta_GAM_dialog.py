@@ -22,7 +22,6 @@
  ***************************************************************************/
 """
 
-### Importer les bibliotheques nécessaires
 import os
 from qgis.core import QgsProject
 from qgis.core import *
@@ -235,7 +234,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
             tab_metadata = self.getMetadataTab()
             tab_contacts = self.getContactTab()
             tab_thematique = self.getThematiqueTab()
-            ## On commence à remplir la fiche des metadonnées
+            # On commence à remplir la fiche des metadonnées
             project = QgsProject.instance()
             for (
                 layer

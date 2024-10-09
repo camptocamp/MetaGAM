@@ -21,7 +21,7 @@
  *                                                                         *
  ***************************************************************************/
 """
-### Importer les bibliotheques nécessaires
+
 import os
 from PyQt5 import QtWidgets, uic
 from qgis.PyQt.QtSql import QSqlDatabase

@@ -21,7 +21,7 @@
  *                                                                         *
  ***************************************************************************/
 """
-### Importer les bibliotheques nécessaires
+
 import os
 import requests
 from requests.structures import CaseInsensitiveDict

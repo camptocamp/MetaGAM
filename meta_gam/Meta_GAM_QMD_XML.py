@@ -22,7 +22,6 @@
  ***************************************************************************/
 """
 
-### Importer les bibliotheques nécessaires
 import os
 import zipfile
 from datetime import datetime
@@ -37,7 +36,7 @@ import xml.etree.ElementTree as ET
 import shutil
 import xml.dom.minidom
 
-### Variables locales pour les chemins des fichiers
+# Variables locales pour les chemins des fichiers
 current_file_path = os.path.abspath(__file__)
 ISO_file_path = os.path.join(os.path.dirname(current_file_path), "resources")
 temp_file = os.path.join(os.path.dirname(current_file_path), "temp")
