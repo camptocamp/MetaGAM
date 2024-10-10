@@ -21,16 +21,17 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
+import os
+import os.path
+
+from qgis.PyQt.QtCore import QCoreApplication, QSettings, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
-from .resources import qInitResources, qCleanupResources
-import os
-
-# Import the code for the dialog
-from .Meta_GAM_dialog import MetaGAMDialog
 from .Meta_GAM_Admin_dialog import Meta_GAM_Admin_dialog
-import os.path
+from .Meta_GAM_dialog import MetaGAMDialog
+
+# Initialize Qt resources from file resources.py
+from .resources import qInitResources, qCleanupResources
 
 
 class MetaGAM:

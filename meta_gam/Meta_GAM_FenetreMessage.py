@@ -1,5 +1,5 @@
-from qgis.PyQt.QtWidgets import QDockWidget
 from PyQt5 import QtWidgets
+from qgis.PyQt.QtWidgets import QDockWidget
 
 
 class TextDockWidget(QDockWidget):

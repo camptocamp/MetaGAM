@@ -23,10 +23,11 @@
 """
 
 import os
+
 from PyQt5 import QtWidgets, uic
-from qgis.PyQt.QtSql import QSqlDatabase
-from qgis.core import QgsProject, QgsLayerTreeGroup, QgsLayerTreeLayer
 from PyQt5.QtWidgets import QMessageBox
+from qgis.core import QgsLayerTreeGroup, QgsLayerTreeLayer, QgsProject
+from qgis.PyQt.QtSql import QSqlDatabase
 
 FORM_CLASS, _ = uic.loadUiType(
     os.path.join(os.path.dirname(__file__), "Meta_GAM_Admin_dialog.ui")

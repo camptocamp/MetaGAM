@@ -22,11 +22,12 @@
  ***************************************************************************/
 """
 
+import json
 import os
+import xml.etree.ElementTree as ET
+
 import requests
 from requests.structures import CaseInsensitiveDict
-import json
-import xml.etree.ElementTree as ET
 
 
 CATALOG = os.environ.get(

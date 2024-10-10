@@ -23,18 +23,30 @@
 """
 
 import os
+import shutil
+import xml.dom.minidom
+import xml.etree.ElementTree as ET
 import zipfile
 from datetime import datetime
 from xml.dom import minidom
 from xml.etree import ElementTree
 from xml.etree.ElementTree import Element, SubElement
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
+
 import lxml.etree as lxml
-from qgis.core import *
-import xml.etree.ElementTree as ET
-import shutil
-import xml.dom.minidom
+from PyQt5.QtCore import (
+    QSize
+)
+from PyQt5.QtGui import (
+    QImage,
+    QPainter,
+    QColor
+)
+from qgis.core import (
+    QgsProject,
+    QgsMapSettings,
+    QgsRectangle,
+    QgsMapRendererCustomPainterJob
+)
 
 # Variables locales pour les chemins des fichiers
 current_file_path = os.path.abspath(__file__)

@@ -22,52 +22,67 @@
  ***************************************************************************/
 """
 
+import json
 import os
-from qgis.core import QgsProject
-from qgis.core import *
 import re
+
+import psycopg2
 import requests
-from PyQt5 import QtWidgets, uic
-from PyQt5.QtGui import (
-    QStandardItemModel,
-    QStandardItem,
+from qgis.core import (
+    QgsBox3d,
+    QgsMapLayerType,
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
+    QgsDataSourceUri,
+    QgsProject,
+    QgsRectangle,
+    QgsLayerMetadata,
+    QgsAbstractMetadataBase,
+    QgsNativeMetadataValidator,
+    QgsMapLayer,
+    QgsWkbTypes
+)
+from qgis.gui import QgsCheckableComboBox
+from qgis.PyQt.QtCore import Qt, QUrl
+from qgis.PyQt.QtGui import (
     QBrush,
     QColor,
     QDesktopServices,
+    QStandardItem,
+    QStandardItemModel
 )
-from PyQt5 import QtWidgets
-from qgis.PyQt import *
-from qgis.PyQt import QtWidgets, QtCore
-from qgis.PyQt.QtWidgets import *
-from qgis.gui import QgsCheckableComboBox
-from qgis.PyQt.QtCore import Qt
-from .Meta_GAM_Geonetwork import connexionGeonetwork, postMetaGN, getMetaDateGN
-from .Meta_GAM_QMD_XML import createZip, cleanTemp, removeAllZipFiles
-from PyQt5.QtCore import QUrl
-from PyQt5.QtWidgets import QDialog, QLabel, QLineEdit, QPushButton, QVBoxLayout
-import psycopg2
-import json
-from qgis.core import QgsProject, QgsDataSourceUri
-from qgis.core import (
-    QgsCoordinateReferenceSystem,
-    QgsCoordinateTransform,
-    QgsRectangle,
-    QgsBox3d,
+from qgis.PyQt.QtWidgets import (
+    QDialog,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QTableView,
+    QTreeWidget,
+    QVBoxLayout,
+    QTreeWidgetItem,
+    QCheckBox,
+    QComboBox,
+    QTextEdit
 )
+from qgis.PyQt.uic import loadUiType
+
+from .Meta_GAM_Geonetwork import connexionGeonetwork, getMetaDateGN, postMetaGN
+from .Meta_GAM_QMD_XML import cleanTemp, createZip, removeAllZipFiles
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
-FORM_CLASS, _ = uic.loadUiType(
+FORM_CLASS, _ = loadUiType(
     os.path.join(os.path.dirname(__file__), "Meta_GAM_dialog_base.ui")
 )
 
 
-class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
+class MetaGAMDialog(QDialog, FORM_CLASS):
     def __init__(self, parent=None):
         """Constructor."""
         super(MetaGAMDialog, self).__init__(parent)
         self.setupUi(self)
-        self.treeWidget = self.findChild(QtWidgets.QTreeWidget, "treeWidget")
-        self.tableGN = self.findChild(QtWidgets.QTableView, "tableGN")
+        self.treeWidget = self.findChild(QTreeWidget, "treeWidget")
+        self.tableGN = self.findChild(QTableView, "tableGN")
         self.tableGN.doubleClicked.connect(self.onTableGNDoubleClick)
         self.layers_niveau = (
             {}
@@ -742,7 +757,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                             value_inspire.itemText(j)
                             popup_text = popup_texts[j]
                             value_inspire.setItemData(
-                                j, popup_text, QtCore.Qt.ToolTipRole
+                                j, popup_text, Qt.ToolTipRole
                             )
 
                         item_keywords = QTreeWidgetItem(attribut)
