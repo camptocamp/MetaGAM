@@ -48,12 +48,15 @@ from qgis.core import (
     QgsMapRendererCustomPainterJob
 )
 
+GMD_URL = "http://www.isotc211.org/2005/gmd"
+GCO_URL = "http://www.isotc211.org/2005/gco"
+
 # Variables locales pour les chemins des fichiers
 current_file_path = os.path.abspath(__file__)
 ISO_file_path = os.path.join(os.path.dirname(current_file_path), "resources")
 temp_file = os.path.join(os.path.dirname(current_file_path), "temp")
 new_xml_block = """
-    <gmd:pointOfContact xmlns:gmd="http://www.isotc211.org/2005/gmd" xmlns:gco="http://www.isotc211.org/2005/gco">
+    <gmd:pointOfContact xmlns:gmd=GMD_URL xmlns:gco=GCO_URL>
         <gmd:CI_ResponsibleParty>
             <gmd:individualName>
                 <gco:CharacterString></gco:CharacterString>
@@ -273,7 +276,7 @@ def create_zip(
     meta_xml = insert_layer_denominateur(meta_xml, layer_denominateur)
     meta_xml = update_file_identifier(meta_xml, uuid)
     meta_xml = insert_contact_xml(meta_xml)
-    if date_publication != None:
+    if date_publication is not None:
         meta_xml = insert_date_publication(meta_xml, date_publication)
     z.writestr(os.path.join(uuid, os.path.join("metadata", "metadata.xml")), meta_xml)
     z.write(
@@ -329,12 +332,12 @@ def insert_inspire_xml(xml_string, keywords):
     root = tree
 
     namespaces = {
-        "gmd": "http://www.isotc211.org/2005/gmd",
-        "gco": "http://www.isotc211.org/2005/gco",
+        "gmd": GMD_URL,
+        "gco": GCO_URL,
     }
 
-    ET.register_namespace("gmd", "http://www.isotc211.org/2005/gmd")
-    ET.register_namespace("gco", "http://www.isotc211.org/2005/gco")
+    ET.register_namespace("gmd", GMD_URL)
+    ET.register_namespace("gco", GCO_URL)
     key = "{http://www.isotc211.org/2005/gmd}descriptiveKeywords"
     descriptive_keywords = [
         el
@@ -371,12 +374,12 @@ def insert_layer_type(xml_string, layer_type):
     root = tree
 
     namespaces = {
-        "gmd": "http://www.isotc211.org/2005/gmd",
-        "gco": "http://www.isotc211.org/2005/gco",
+        "gmd": GMD_URL,
+        "gco": GCO_URL,
     }
 
-    ET.register_namespace("gmd", "http://www.isotc211.org/2005/gmd")
-    ET.register_namespace("gco", "http://www.isotc211.org/2005/gco")
+    ET.register_namespace("gmd", GMD_URL)
+    ET.register_namespace("gco", GCO_URL)
     key = "{http://www.isotc211.org/2005/gmd}spatialRepresentationType"
     spatial_representation_types_code = [
         el
@@ -413,12 +416,12 @@ def insert_layer_denominateur(xml_string, layer_denominateur):
     root = tree
 
     namespaces = {
-        "gmd": "http://www.isotc211.org/2005/gmd",
-        "gco": "http://www.isotc211.org/2005/gco",
+        "gmd": GMD_URL,
+        "gco": GCO_URL,
     }
 
-    ET.register_namespace("gmd", "http://www.isotc211.org/2005/gmd")
-    ET.register_namespace("gco", "http://www.isotc211.org/2005/gco")
+    ET.register_namespace("gmd", GMD_URL)
+    ET.register_namespace("gco", GCO_URL)
 
     key = "{http://www.isotc211.org/2005/gmd}denominator"
     denominators = root.findall(".//" + key, namespaces)
@@ -447,12 +450,12 @@ def insert_date_publication(xml_string, date_publication):
     root = tree
 
     namespaces = {
-        "gmd": "http://www.isotc211.org/2005/gmd",
-        "gco": "http://www.isotc211.org/2005/gco",
+        "gmd": GMD_URL,
+        "gco": GCO_URL,
     }
 
-    ET.register_namespace("gmd", "http://www.isotc211.org/2005/gmd")
-    ET.register_namespace("gco", "http://www.isotc211.org/2005/gco")
+    ET.register_namespace("gmd", GMD_URL)
+    ET.register_namespace("gco", GCO_URL)
 
     key = "{http://www.isotc211.org/2005/gco}Date"
     date_elements = root.findall(
@@ -480,8 +483,8 @@ def update_file_identifier(xml_string, meta_id):
     """
     tree = ET.fromstring(xml_string)
     namespaces = {
-        "gmd": "http://www.isotc211.org/2005/gmd",
-        "gco": "http://www.isotc211.org/2005/gco",
+        "gmd": GMD_URL,
+        "gco": GCO_URL,
     }
 
     file_identifier_element = tree.find(
@@ -517,12 +520,12 @@ def insert_contact_xml(xml_string):
     root = tree
 
     namespaces = {
-        "gmd": "http://www.isotc211.org/2005/gmd",
-        "gco": "http://www.isotc211.org/2005/gco",
+        "gmd": GMD_URL,
+        "gco": GCO_URL,
     }
 
-    ET.register_namespace("gmd", "http://www.isotc211.org/2005/gmd")
-    ET.register_namespace("gco", "http://www.isotc211.org/2005/gco")
+    ET.register_namespace("gmd", GMD_URL)
+    ET.register_namespace("gco", GCO_URL)
 
     point_of_contact = root.find(".//gmd:pointOfContact", namespaces)
     descriptive_keywords_parent = root.find(

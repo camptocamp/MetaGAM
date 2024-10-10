@@ -75,6 +75,11 @@ FORM_CLASS, _ = loadUiType(
     os.path.join(os.path.dirname(__file__), "Meta_GAM_dialog_base.ui")
 )
 
+LICENCE_OUVERTE_OD = "Licence ouverte (OpenDATA)"
+LICENCE_FERMEE = "Licence fermée (Uniquement en interne)"
+
+GAM_GEOFLUX_URL = "https://geoflux.grenoblealpesmetropole.fr/geoserver"
+THEMES_INSPIRE = "Thèmes INSPIRE"
 
 class MetaGAMDialog(QDialog, FORM_CLASS):
     def __init__(self, parent=None):
@@ -117,7 +122,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         self.label_Orange.setStyleSheet("color: orange;")
         self.tree_checkbox_status = None
         self.labelGeo.setOpenExternalLinks(True)
-        self.pbAutoMeta.clicked.connect(self.autoFillMeta)
+        self.pbAutoMeta.clicked.connect(self.auto_fill_meta)
         self.pb_meta_cancel.clicked.connect(self.PluginClose)
         self.pb_meta_apply.clicked.connect(self.get_tree_checkbox_status)
         self.pb_meta_apply.clicked.connect(self.UpdateMeta)
@@ -238,7 +243,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             return meta_id
         return None
 
-    def autoFillMeta(self):
+    def auto_fill_meta(self):
         """_summary_
 
         Cette fonction a pour objectif de remplir automatiquement les métadonnées d'une couche dans QGIS. Tout d'abord, elle récupère une couche de contacts à partir de laquelle elle extrait les informations nécessaires pour remplir la partie "contact" des métadonnées de la couche en question. Ensuite, elle récupère l'emprise spatiale de la couche et remplit cette information dans la fiche de métadonnées. Et c'est pareil pour les autres informations de la fiche metadata.
@@ -336,7 +341,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                 if len(self.layers_niveau) > 0:
                     if self.layers_niveau.get(layer_projet_name) == 1:
                         meta_contact = QgsLayerMetadata.Contact()
-                        if contact_nom != None:
+                        if contact_nom is not None:
                             meta_contact.name = contact_prenom + " " + contact_nom
                             meta_contact.organization = "Grenoble Alpes Métropole"
                             meta_contact.email = contact_mail
@@ -485,14 +490,14 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         list_links = [link_metro]
                         if (
                             layer_meta.licenses() != []
-                            and layer_meta.licenses()[0] == "Licence ouverte (OpenDATA)"
+                            and layer_meta.licenses()[0] == LICENCE_OUVERTE_OD
                         ):
                             link_wms = QgsAbstractMetadataBase.Link()
                             link_wms.name = layer_name
                             link_wms.type = "OGC-WMS Capabilities service (ver 1.3.0)"
                             link_wms.description = layer_name
                             link_wms.url = (
-                                "https://geoflux.grenoblealpesmetropole.fr/geoserver/"
+                                GAM_GEOFLUX_URL
                                 + layer_schema
                                 + "/ows?SERVICE=WMS&"
                             )
@@ -503,7 +508,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             link_kml.type = "WWW:DOWNLOAD-1.0-http--download"
                             link_kml.description = layer_name
                             link_kml.url = (
-                                "https://geoflux.grenoblealpesmetropole.fr/geoserver/"
+                                GAM_GEOFLUX_URL
                                 + layer_schema
                                 + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
                                 + layer_schema
@@ -518,7 +523,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             link_geojson.type = "WWW:DOWNLOAD-1.0-http--download"
                             link_geojson.description = layer_name
                             link_geojson.url = (
-                                "https://geoflux.grenoblealpesmetropole.fr/geoserver/"
+                                GAM_GEOFLUX_URL
                                 + layer_schema
                                 + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
                                 + layer_schema
@@ -578,7 +583,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             if not isinstance(keywords, list):
                                 keywords = [keywords]
                             layer_meta.setKeywords({"": keywords})
-                        if categories != None:
+                        if categories is not None:
                             layer_meta.setCategories(categories)
                         # On met à jour les metadonnées
                         layer_meta.setIdentifier(identif)
@@ -587,7 +592,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         layer_meta.setTitle(title)
                         layer_meta.setContacts([meta_contact])
                         layer_meta.setExtent(ext)
-                        if licence != None:
+                        if licence is not None:
                             layer_meta.setLicenses([licence])
                         layer.setMetadata(layer_meta)
                     self.MetaMessage()
@@ -649,8 +654,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         # list_licenses = ["","Licence Ouverte version 2.0","ODC Open Database License (ODbL) version 1.0","Apache License 2.0","BSD 2-Clause (Simplified) License","BSD 3-Clause (New) or (Revised) License","CeCILL-B Free Software License Agreement","MIT License","CeCILL Free Software License Agreement v2.1","CeCILL-C Free Software License Agreement","GNU General Public License v3.0 or later","GNU Lesser General Public License v3.0 or later","GNU Affero General Public License v3.0 or later","Mozilla Public License 2.0","Eclipse Public License 2.0","European Union Public License 1.2"]
         list_licenses = [
             "",
-            "Licence ouverte (OpenDATA)",
-            "Licence fermée (Uniquement en interne)",
+            LICENCE_OUVERTE_OD,
+            LICENCE_FERMEE,
         ]
 
         list_themes_inspire = [
@@ -748,7 +753,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
 
                         # Catégories et Mot clés et Thèmes Inspire
                         item_inspire = QTreeWidgetItem(attribut)
-                        item_inspire.setText(2, str("Thèmes INSPIRE"))
+                        item_inspire.setText(2, str(THEMES_INSPIRE))
                         value_inspire = QgsCheckableComboBox()
                         value_inspire.addItems(list_themes_inspire)
                         attribut.addChild(item_inspire)
@@ -822,7 +827,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         end = source.find(".")
                         layer_schema = source[start:end]
                         layer_schema = layer_schema[1:-1]
-                        self.getNewTreeVal(parent, layer_name, layer_meta, layer_schema)
+                        self.get_new_tree_val(parent, layer_name, layer_meta, layer_schema)
                         layer.setMetadata(layer_meta)
                         dict_inspire = self.dictTreeInspireVal()
             self.LayersTree()
@@ -834,7 +839,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             msg.setWindowTitle("Info!")
             msg.exec_()
 
-    def getNewTreeVal(self, root, parent_text, metadata, layer_schema):
+    def get_new_tree_val(self, root, parent_text, metadata, layer_schema):
         """_summary_
 
         Cette fonction permet de récupérer les nouvelles métadonnées saisies par l'utilisateur dans le plugin, et les insérer dans la fiche de métadonnées.
@@ -860,7 +865,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                 for j in range(parent.childCount()):
                     child = parent.child(j)
                     widget = self.treeWidget.itemWidget(child, 3)
-                    if child.text(2) == "Thèmes INSPIRE":
+                    if child.text(2) == THEMES_INSPIRE:
                         selected_inspire = widget.checkedItems()
                         value = []
                         for item in selected_inspire:
@@ -929,7 +934,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         link_wms.type = "OGC-WMS Capabilities service (ver 1.3.0)"
                         link_wms.description = parent_text
                         link_wms.url = (
-                            "https://geoflux.grenoblealpesmetropole.fr/geoserver/"
+                            GAM_GEOFLUX_URL
                             + layer_schema
                             + "/ows?SERVICE=WMS&"
                         )
@@ -940,7 +945,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         link_kml.type = "WWW:DOWNLOAD-1.0-http--download"
                         link_kml.description = parent_text
                         link_kml.url = (
-                            "https://geoflux.grenoblealpesmetropole.fr/geoserver/"
+                            GAM_GEOFLUX_URL
                             + layer_schema
                             + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
                             + layer_schema
@@ -955,7 +960,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         link_geojson.type = "WWW:DOWNLOAD-1.0-http--download"
                         link_geojson.description = parent_text
                         link_geojson.url = (
-                            "https://geoflux.grenoblealpesmetropole.fr/geoserver/"
+                            GAM_GEOFLUX_URL
                             + layer_schema
                             + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
                             + layer_schema
@@ -967,7 +972,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
 
                         metadata.setLicenses([value])
                         licence = value
-                        if value == "Licence ouverte (OpenDATA)":
+                        if value == LICENCE_OUVERTE_OD:
                             params_wms = {
                                 "request": "GetCapabilities",
                                 "service": "WMS",
@@ -985,11 +990,11 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         else:
                             metadata.setLinks(list_links)
                 update_requete = f'UPDATE sit_hydre.gest_bdd_rel_objets_thematique SET metadonnees = \'{{"licences": {json.dumps(licence)},"categories": {json.dumps(categories)}, "mots_clefs": {json.dumps(mots_clefs)}, "themes_inspire": {json.dumps(themes_inspire)}}}\' WHERE objet_id = \'{id_objet}\' AND niveau = 1'
-                if description != None:
+                if description is not None:
                     description = description.replace("'", "''")
                     update_requete2 = f"UPDATE sit_hydre.gest_bdd_rel_objets_thematique SET metadonnees_commentaire = '{description}' WHERE objet_id = '{id_objet}' AND niveau = 1"
                     cur.execute(update_requete2)
-                if title != None:
+                if title is not None:
                     update_title_requete = f"UPDATE sit_hydre.gest_bdd_rel_objets_thematique SET metadonnees_titre = '{title}' WHERE objet_id = '{id_objet}' AND niveau = 1"
                     cur.execute(update_title_requete)
                 cur.execute(update_requete)
@@ -1012,7 +1017,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                 for j in range(parent.childCount()):
                     child = parent.child(j)
                     widget = self.treeWidget.itemWidget(child, 3)
-                    if child.text(2) == "Thèmes INSPIRE":
+                    if child.text(2) == THEMES_INSPIRE:
                         value = widget.checkedItems()
                         return value
 
@@ -1060,7 +1065,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             for j in range(parent.childCount()):
                 child = parent.child(j)
                 widget = self.treeWidget.itemWidget(child, 3)
-                if child.text(2) == "Thèmes INSPIRE":
+                if child.text(2) == THEMES_INSPIRE:
                     widget.setCheckedItems(inspire_dict[parent.text(1)])
 
     def getInspireFromBD(self, metadata):
@@ -1088,9 +1093,9 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                 for j in range(parent.childCount()):
                     child = parent.child(j)
                     widget = self.treeWidget.itemWidget(child, 3)
-                    if child.text(2) == "Thèmes INSPIRE":
+                    if child.text(2) == THEMES_INSPIRE:
                         list_inspire = self.getInspireFromBD(metadata)
-                        if list_inspire != None:
+                        if list_inspire is not None:
                             widget.setCheckedItems(list_inspire)
                     elif child.text(2) == "Mots-clés":
                         keywords = metadata.keywords()
@@ -1264,7 +1269,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             uuid = layer_meta.identifier()
             # print('uuid : %',uuid)
             meta_id = self.getMetaID(uuid)
-            if self.tree_checkbox_status != None:
+            if self.tree_checkbox_status is not None:
                 if self.tree_checkbox_status.get(i):
                     meta_id = meta_id[0]
                     item1 = QStandardItem(layer_name)
@@ -1353,8 +1358,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             meta_id = self.getMetaID(uuid)
             inspire_keywords = self.getTreeInspireVal(layer_name)
             self.get_tree_checkbox_status()
-            if meta_id != None:
-                if self.tree_checkbox_status != None:
+            if meta_id is not None:
+                if self.tree_checkbox_status is not None:
                     layer_type = self.getLayerType(layer)
                     layer_dominateur = self.getLayerDenominateur(layer)
                     if self.tree_checkbox_status.get(i):

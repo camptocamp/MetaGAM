@@ -89,7 +89,7 @@ class MetaGamAdminDialog(QtWidgets.QDialog, FORM_CLASS):
             return res
 
     def checkAdmin(self):
-        if self.connexion_Postgis() == True:
+        if self.connexion_Postgis():
             self.frame_2.setVisible(True)
 
     def getProjectGroups(self):

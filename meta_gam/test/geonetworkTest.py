@@ -29,8 +29,8 @@ class MyTestClass(unittest.TestCase):
         self.assertIsInstance(
             result[2], str
         )  # Vérifie que le troisième élément est une chaîne de caractères
-        self.assertTrue(
-            isinstance(result[3], CaseInsensitiveDict)
+        self.assertIsInstance(
+            result[3], CaseInsensitiveDict
         )  # Vérifie que le quatrième élément est un CaseInsensitiveDict
         self.assertIsInstance(
             result[4], str

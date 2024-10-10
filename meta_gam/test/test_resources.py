@@ -34,6 +34,6 @@ class MetaGAMDialogTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    suite = unittest.makeSuite(MetaGAMResourcesTest)
+    suite = unittest.defaultTestLoader.loadTestsFromTestCase(MetaGAMDialogTest)
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite)
