@@ -1,5 +1,5 @@
 import unittest
-from ..Meta_GAM_Geonetwork import connexionGeonetwork, getMetaDateGN
+from ..Meta_GAM_Geonetwork import connexion_geonetwork, get_meta_date_gn
 from requests.structures import CaseInsensitiveDict
 
 
@@ -16,7 +16,7 @@ class MyTestClass(unittest.TestCase):
 
     def test_connexionGeonetwork(self):
         # Appel de la fonction à tester
-        result = connexionGeonetwork(self.user, self.password)
+        result = connexion_geonetwork(self.user, self.password)
 
         # Assertions pour vérifier le comportement attendu
         self.assertEqual(len(result), 7)  # Vérifie le nombre de valeurs renvoyées
@@ -42,7 +42,7 @@ class MyTestClass(unittest.TestCase):
 
     def test_getMetaDateGN(self):
         # Appel de la fonction à tester
-        date_publication = getMetaDateGN(self.user, self.password, self.uuid)
+        date_publication = get_meta_date_gn(self.user, self.password, self.uuid)
 
         self.assertIsNotNone(
             date_publication

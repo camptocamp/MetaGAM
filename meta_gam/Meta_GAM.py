@@ -27,7 +27,7 @@ import os.path
 from qgis.PyQt.QtCore import QCoreApplication, QSettings, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
-from .Meta_GAM_Admin_dialog import Meta_GAM_Admin_dialog
+from .Meta_GAM_Admin_dialog import MetaGamAdminDialog
 from .Meta_GAM_dialog import MetaGAMDialog
 
 # Initialize Qt resources from file resources.py
@@ -163,7 +163,7 @@ class MetaGAM:
 
         return action
 
-    def initGui(self):
+    def init_gui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
         icon_path = ":/plugins/Meta_GAM/icon.png"
@@ -222,7 +222,7 @@ class MetaGAM:
         # self.first_start = False
         # self.dlg = Meta_GAM_Admin_dialog()
         if self.dlg2 is None:
-            self.dlg2 = Meta_GAM_Admin_dialog()
+            self.dlg2 = MetaGamAdminDialog()
 
         # show the dialog
         self.dlg2.show()

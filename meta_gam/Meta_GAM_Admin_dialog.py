@@ -34,9 +34,9 @@ FORM_CLASS, _ = uic.loadUiType(
 )
 
 
-class Meta_GAM_Admin_dialog(QtWidgets.QDialog, FORM_CLASS):
+class MetaGamAdminDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, parent=None):
-        super(Meta_GAM_Admin_dialog, self).__init__(parent)
+        super(MetaGamAdminDialog, self).__init__(parent)
         self.setupUi(self)
         self.frame_2.setVisible(False)
 
@@ -45,13 +45,12 @@ class Meta_GAM_Admin_dialog(QtWidgets.QDialog, FORM_CLASS):
         self.updateGroups()
         QgsProject.instance().layersAdded.connect(self.updateGroups)
         QgsProject.instance().layersRemoved.connect(self.updateGroups)
-        layersTreeroot = QgsProject.instance().layerTreeRoot()
-        layersTreeroot.layerOrderChanged.connect(self.updateGroups)
+        layers_treeroot = QgsProject.instance().layerTreeRoot()
+        layers_treeroot.layerOrderChanged.connect(self.updateGroups)
         self.pb_updateList.clicked.connect(self.updateGroups)
         self.pb_connexion.clicked.connect(self.checkAdmin)
         self.pbClose.clicked.connect(self.closeDialog)
-        self.checkbox = self.checkBox
-        self.checkbox.stateChanged.connect(self.default_file)
+        self.checkBox.stateChanged.connect(self.default_file)
         self.pushButton.clicked.connect(self.updateProgressBar)
 
     def connexion_Postgis(self):

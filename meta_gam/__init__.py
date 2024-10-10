@@ -24,8 +24,7 @@
 """
 
 
-# noinspection PyPep8Naming
-def classFactory(iface):  # pylint: disable=invalid-name
+def meta_gam_factory(iface):
     """Load MetaGAM class from file MetaGAM.
 
     :param iface: A QGIS interface instance.
