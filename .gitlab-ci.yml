@@ -23,13 +23,18 @@ stages:          # List of stages for jobs, and their order of execution
   # - test
   # - deploy
 
-install-tools:
+# install-tools:
+#   stage: install
+#   script:
+#     - exec apt update
+#     - exec apt install -y python3.8-venv
+#     - exec python3 -m venv /venv
+#     - exec /venv/bin/pip install pre-commit
+
+check-install:
   stage: install
   script:
-    - exec apt update
-    - exec apt install -y python3.8-venv
-    - exec python3 -m venv /venv
-    - exec /venv/bin/pip install pre-commit
+    - exec /venv/bin/pre-commit -V
 
 # build-job:       # This job runs in the build stage, which runs first.
 #   stage: build
