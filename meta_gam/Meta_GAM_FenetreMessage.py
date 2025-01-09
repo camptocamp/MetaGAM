@@ -1,4 +1,4 @@
-from qgis.PyQt.QtWidgets import QTextEdit, QDockWidget
+from qgis.PyQt.QtWidgets import QDockWidget
 from PyQt5 import QtWidgets
 
 

@@ -24,12 +24,10 @@
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
-from PyQt5.QtWidgets import QAction, QDialog
-from PyQt5 import uic
+from PyQt5.QtWidgets import QAction
 import os
 
 # Initialize Qt resources from file resources.py
-from .resources import *
 
 # Import the code for the dialog
 from .Meta_GAM_dialog import MetaGAMDialog
