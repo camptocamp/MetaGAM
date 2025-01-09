@@ -17,10 +17,19 @@
 # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
 
 stages:          # List of stages for jobs, and their order of execution
+  - install
   # - build
   - lint
   # - test
   # - deploy
+
+install-tools:
+  stage: install
+  script:
+    - exec apt update
+    - exec apt install -y python3.8-venv
+    - exec python3 -m venv /venv
+    - exec /venv/bin/pip install pre-commit
 
 # build-job:       # This job runs in the build stage, which runs first.
 #   stage: build
@@ -39,7 +48,7 @@ lint-test-job:   # This job also runs in the test stage.
   stage: lint    # It can run at the same time as unit-test-job (in parallel).
   script:
     - echo "Linting code... This will take about 10 seconds."
-    - exec docker compose run -u $(id -u) -T --rm qgis unbuffer pre-commit
+    - exec /venv/bin/pre-commit --all-files
     - echo "No lint issues found."
 
 # deploy-job:      # This job runs in the deploy stage.
