@@ -53,7 +53,7 @@ lint-test-job:   # This job also runs in the test stage.
   stage: lint    # It can run at the same time as unit-test-job (in parallel).
   script:
     - echo "Linting code... This will take about 10 seconds."
-    - exec /venv/bin/pre-commit --all-files
+    - exec /venv/bin/pre-commit run --all-files
     - echo "No lint issues found."
 
 # deploy-job:      # This job runs in the deploy stage.
