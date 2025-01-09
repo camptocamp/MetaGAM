@@ -24,10 +24,8 @@
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
-from PyQt5.QtWidgets import QAction
+from .resources import qInitResources, qCleanupResources
 import os
-
-# Initialize Qt resources from file resources.py
 
 # Import the code for the dialog
 from .Meta_GAM_dialog import MetaGAMDialog
@@ -49,6 +47,9 @@ class MetaGAM:
         # Save reference to the QGIS interface
         self.iface = iface
         self.dockwidget = None
+
+        # Initialize Qt resources from file resources.py
+        qInitResources()
 
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
@@ -189,6 +190,7 @@ class MetaGAM:
             self.iface.removePluginMenu(self.tr("&MetaGAM"), action)
             self.iface.removePluginMenu(self.tr("&AdminMenu"), action)
             self.iface.removeToolBarIcon(action)
+        qCleanupResources()
 
     def run(self):
         """Run method that performs all the real work"""
