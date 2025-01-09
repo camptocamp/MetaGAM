@@ -1230,7 +1230,12 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
         """
         connexion = self.ConnexionPostgresql()[1]
         cur = connexion.cursor()
-        catalogGN = "https://geonetwork.grenoblealpesmetropole.fr/geonetwork/srv/fre/catalog.search#/metadata/"
+        catalogGN = (
+            os.environ.get(
+                "GN_URL", "https://geonetwork.grenoblealpesmetropole.fr/geonetwork"
+            )
+            + "/srv/fre/catalog.search#/metadata/"
+        )
         self.model = QStandardItemModel(0, 2)
         self.model.setHorizontalHeaderLabels(
             ["Couches", "Lien vers les fiches métadonnées dans Geonetwork"]

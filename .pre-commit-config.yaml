@@ -20,4 +20,4 @@ repos:
     rev: v2.1.1
     hooks:
       - id: autoflake
-        args: [--in-place]
+        args: [--remove-all-unused-imports, --in-place]
