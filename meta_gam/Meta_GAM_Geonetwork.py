@@ -36,11 +36,11 @@ def connexionGeonetwork(user, password):
     """_summary_
 
     Cette fonction établis la connexion avec le serveur Geonetwork en utilisant son API. La fonction utilise la bibliothèque Python requests pour envoyer des requêtes HTTP au serveur GeoNetwork et récupérer des informations. Elle envoie deux requêtes GET à deux endpoints différents du serveur, en incluant les informations d'authentification de l'utilisateur. La première requête est utilisée pour récupérer un cookie de session, qui est stocké localement dans un fichier cookie.txt. La seconde requête est utilisée pour récupérer les informations de profil de l'utilisateur.
-    
+
     Args:
         user (str): nom d'utilisateur saisie dans le plugin.
         password (str): mot de pass saisie dans le plugin.
-        
+
     Returns:
         res (booléen): un booléen qui indique si la connexion a réussi ou échoué.
         CATALOG (str): l'URL de base du serveur GeoNetwork utilisé.
@@ -60,21 +60,25 @@ def connexionGeonetwork(user, password):
         cookie.write(str(response.cookies))
     file_one = open(temp_file + "/cookie.txt", "r")
     text = file_one.read()
-    start = 'XSRF-TOKEN='
-    end = ' for'
-    token = text[text.find(start) + len(start):text.rfind(end)]
+    start = "XSRF-TOKEN="
+    end = " for"
+    token = text[text.find(start) + len(start) : text.rfind(end)]
     file_one.close()
     headers = CaseInsensitiveDict()
     headers["Accept"] = "application/json"
     headers["X-XSRF-TOKEN"] = token
-    response_author = requests.get(CATALOG + "/srv/eng/info?type=me",
-                                   headers=headers,
-                                   cookies={"XSRF-TOKEN": token},
-                                   auth=(user, password))
-    response_info = requests.get(CATALOG + "/srv/api/me",
-                                 headers=headers,
-                                 cookies={"XSRF-TOKEN": token},
-                                 auth=(user, password))
+    response_author = requests.get(
+        CATALOG + "/srv/eng/info?type=me",
+        headers=headers,
+        cookies={"XSRF-TOKEN": token},
+        auth=(user, password),
+    )
+    response_info = requests.get(
+        CATALOG + "/srv/api/me",
+        headers=headers,
+        cookies={"XSRF-TOKEN": token},
+        auth=(user, password),
+    )
     if (response_author.status_code) == 200:
         res = True
         res_text = response_info.text
@@ -109,42 +113,45 @@ def postMetaGN(user, password):
     temp_file = os.path.join(os.path.dirname(current_file_path), "temp")
     if userGroup == None:
         for filename in os.listdir(temp_file):
-            file_path = os.path.join(temp_file, filename)
-            if filename.endswith('.zip'):
-                with open(temp_file + "/" + filename, 'rb') as file:
+            os.path.join(temp_file, filename)
+            if filename.endswith(".zip"):
+                with open(temp_file + "/" + filename, "rb") as file:
                     file_obj = file.read()
                     file_basename = os.path.basename(filename)
                     file_to_upload = {"file": (str(file_basename), file_obj)}
                     finfo = {"fullPath": filename}
                     response = requests.post(
-                        connexionGN[1] +
-                        "/srv/api/records?metadataType=METADATA&uuidProcessing=OVERWRITE&transformWith=_none_",
+                        connexionGN[1]
+                        + "/srv/api/records?metadataType=METADATA&uuidProcessing=OVERWRITE&transformWith=_none_",
                         headers=connexionGN[3],
                         cookies={"XSRF-TOKEN": connexionGN[2]},
                         auth=(connexionGN[4], connexionGN[5]),
                         files=file_to_upload,
-                        data=finfo)
+                        data=finfo,
+                    )
     else:
         userGroup = str(userGroup)
         current_file_path = os.path.abspath(__file__)
         temp_file = os.path.join(os.path.dirname(current_file_path), "temp")
         for filename in os.listdir(temp_file):
-            file_path = os.path.join(temp_file, filename)
-            if filename.endswith('.zip'):
-                with open(temp_file + "/" + filename, 'rb') as file:
+            os.path.join(temp_file, filename)
+            if filename.endswith(".zip"):
+                with open(temp_file + "/" + filename, "rb") as file:
                     file_obj = file.read()
                     file_basename = os.path.basename(filename)
                     file_to_upload = {"file": (str(file_basename), file_obj)}
                     finfo = {"fullPath": filename}
                     response = requests.post(
-                        connexionGN[1] +
-                        "/srv/api/records?metadataType=METADATA&uuidProcessing=OVERWRITE&group="
-                        + userGroup + "&transformWith=_none_",
+                        connexionGN[1]
+                        + "/srv/api/records?metadataType=METADATA&uuidProcessing=OVERWRITE&group="
+                        + userGroup
+                        + "&transformWith=_none_",
                         headers=connexionGN[3],
                         cookies={"XSRF-TOKEN": connexionGN[2]},
                         auth=(connexionGN[4], connexionGN[5]),
                         files=file_to_upload,
-                        data=finfo)
+                        data=finfo,
+                    )
 
 
 def getMetaDateGN(user, password, uuid):
@@ -158,19 +165,22 @@ def getMetaDateGN(user, password, uuid):
         uuid (str): identifiant fiche de métadonnées.
     """
     connexionGN = connexionGeonetwork(user, password)
-    userGroup = connexionGN[6]
+    connexionGN[6]
     headersGN = connexionGN[3]
     headersGN["Accept"] = "application/xml"
     headersGN["Content-Type"] = "application/xml"
     response = requests.get(
-        connexionGN[1] + "/srv/api/records/" + uuid +
-        "/formatters/xml?addSchemaLocation=false&increasePopularity=false&approved=false",
+        connexionGN[1]
+        + "/srv/api/records/"
+        + uuid
+        + "/formatters/xml?addSchemaLocation=false&increasePopularity=false&approved=false",
         headers=headersGN,
         cookies={"XSRF-TOKEN": connexionGN[2]},
-        auth=(connexionGN[4], connexionGN[5]))
+        auth=(connexionGN[4], connexionGN[5]),
+    )
     if response.status_code == 200:
         reponse_xml = response.text
         root = ET.fromstring(reponse_xml)
         date_element = root.find(".//{http://www.isotc211.org/2005/gco}Date")
         date_publication = date_element.text
-        return (date_publication)
+        return date_publication

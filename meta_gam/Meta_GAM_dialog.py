@@ -29,7 +29,13 @@ from qgis.core import *
 import re
 import requests
 from PyQt5 import QtWidgets, uic
-from PyQt5.QtGui import QStandardItemModel, QStandardItem, QBrush, QColor, QDesktopServices
+from PyQt5.QtGui import (
+    QStandardItemModel,
+    QStandardItem,
+    QBrush,
+    QColor,
+    QDesktopServices,
+)
 from PyQt5 import QtWidgets
 from qgis.PyQt import *
 from qgis.PyQt import QtWidgets, QtCore
@@ -43,15 +49,20 @@ from PyQt5.QtWidgets import QDialog, QLabel, QLineEdit, QPushButton, QVBoxLayout
 import psycopg2
 import json
 from qgis.core import QgsProject, QgsDataSourceUri
-from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsRectangle, QgsBox3d
+from qgis.core import (
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
+    QgsRectangle,
+    QgsBox3d,
+)
 
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = uic.loadUiType(
-    os.path.join(os.path.dirname(__file__), 'Meta_GAM_dialog_base.ui'))
+    os.path.join(os.path.dirname(__file__), "Meta_GAM_dialog_base.ui")
+)
 
 
 class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
-
     def __init__(self, parent=None):
         """Constructor."""
         super(MetaGAMDialog, self).__init__(parent)
@@ -59,20 +70,20 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
         self.treeWidget = self.findChild(QtWidgets.QTreeWidget, "treeWidget")
         self.tableGN = self.findChild(QtWidgets.QTableView, "tableGN")
         self.tableGN.doubleClicked.connect(self.onTableGNDoubleClick)
-        self.layers_niveau = {}  # Dictionnaire pour stocker le nom de la couche et son niveau par rapport à la thématique
+        self.layers_niveau = (
+            {}
+        )  # Dictionnaire pour stocker le nom de la couche et son niveau par rapport à la thématique
         self.dict_cat_iso = {
             "Agriculture": "farming",
             "Biote": "biota",
             "Limites": "boundaries",
-            "Climatologie/Météorologie/Atmoshpère":
-            "climatologyMeteorologyAtmosphere",
+            "Climatologie/Météorologie/Atmoshpère": "climatologyMeteorologyAtmosphere",
             "Economie": "economy",
             "Altitude": "elevation",
             "Environnement": "environment",
             "Informations géoscientifiques": "geoscientificInformation",
             "Santé": "health",
-            "Imagerie/Cartes de base/Occupation des terres":
-            "imageryBaseMapsEarthCover",
+            "Imagerie/Cartes de base/Occupation des terres": "imageryBaseMapsEarthCover",
             "Renseignement/Secteur militaire": "intelligenceMilitary",
             "Eaux intérieures": "inlandWaters",
             "Localisation": "location",
@@ -81,8 +92,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
             "Société": "society",
             "Structure": "structure",
             "Transport": "transportation",
-            "Services d'utilité publique/Communication":
-            "utilitiesCommunication"
+            "Services d'utilité publique/Communication": "utilitiesCommunication",
         }
         self.UserPassword = None
         self.pbPost.setVisible(False)
@@ -110,13 +120,13 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
         # Créer un label et un champ de texte
         label = QLabel("Veuillez saisir uniquement votre mot de passe:")
         password_edit = QLineEdit()
-        password_edit.setEchoMode(
-            QLineEdit.Password)  # Masquer les caractères saisis
+        password_edit.setEchoMode(QLineEdit.Password)  # Masquer les caractères saisis
 
         # Créer un bouton OK
         ok_button = QPushButton("OK")
         ok_button.clicked.connect(
-            dialog.accept)  # Fermer la fenêtre et renvoyer QDialog.Accepted
+            dialog.accept
+        )  # Fermer la fenêtre et renvoyer QDialog.Accepted
 
         # Créer un layout vertical et ajouter les widgets
         layout = QVBoxLayout(dialog)
@@ -135,8 +145,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def ConnexionPostgresql(self):
         try:
-            connexion = psycopg2.connect(service="bd_prod",
-                                         password=self.UserPassword)
+            connexion = psycopg2.connect(service="bd_prod", password=self.UserPassword)
             return True, connexion
         except psycopg2.Error as e:
             QMessageBox.critical(self, "Erreur", str(e), QMessageBox.Ok)
@@ -191,30 +200,32 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
         cur = connexion.cursor()
         cur.execute(
             "SELECT contact_referent_id FROM sit_hydre.gest_bdd_rel_thematique_contact_referents WHERE thematique_id = %s",
-            (id_thematique, ))
+            (id_thematique,),
+        )
         rows = cur.fetchall()
         contact_ids = [row[0] for row in rows]
         return contact_ids
 
     def getMetaID(self, id_objet):
-        #print('id_objet : ' + id_objet)
+        # print('id_objet : ' + id_objet)
         if id_objet:
             connexion = self.ConnexionPostgresql()[1]
             cur = connexion.cursor()
             cur.execute(
                 "SELECT metadonnees_id FROM sit_hydre.gest_bdd_rel_objets_thematique WHERE objet_id = %s",
-                (id_objet, ))
+                (id_objet,),
+            )
             rows = cur.fetchall()
-            #print (rows)
+            # print (rows)
             MetaID = [row[0] for row in rows]
             return MetaID
         return None
 
     def AutoFillMeta(self):
         """_summary_
-        
+
         Cette fonction a pour objectif de remplir automatiquement les métadonnées d'une couche dans QGIS. Tout d'abord, elle récupère une couche de contacts à partir de laquelle elle extrait les informations nécessaires pour remplir la partie "contact" des métadonnées de la couche en question. Ensuite, elle récupère l'emprise spatiale de la couche et remplit cette information dans la fiche de métadonnées. Et c'est pareil pour les autres informations de la fiche metadata.
-        
+
         """
         if self.ConnexionPostgresqlPassword():
             tab_gestion = self.getMetadataGestionTab()
@@ -223,16 +234,18 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
             tab_thematique = self.getThematiqueTab()
             ## On commence à remplir la fiche des metadonnées
             project = QgsProject.instance()
-            for layer in project.mapLayers().values(
-            ):  #On parcours les couches du projets une aprés l'autre
-                layer_meta = layer.metadata(
-                )  #On récupere la fiche de metadata
+            for (
+                layer
+            ) in (
+                project.mapLayers().values()
+            ):  # On parcours les couches du projets une aprés l'autre
+                layer_meta = layer.metadata()  # On récupere la fiche de metadata
                 # Recuperer nom du schema de la couche
                 uri = QgsDataSourceUri(layer.dataProvider().dataSourceUri())
                 layer_schema = uri.schema()
                 layer_name = uri.table()
                 layer_projet_name = layer.name()
-                #On récupere l'emprise spataile
+                # On récupere l'emprise spataile
                 extent = layer.extent()
                 xmin = extent.xMinimum()
                 xmax = extent.xMaximum()
@@ -258,12 +271,12 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                     id_objet_meta = obj_meta.get("objet_id")
                     if identif == id_objet_meta:
                         niv_thematique = obj_meta.get("niveau")
-                        if niv_thematique == 1 :
+                        if niv_thematique == 1:
                             self.layers_niveau[layer.name()] = niv_thematique
                             Licence = obj_meta.get("metadonnees")["licences"]
                             categories = obj_meta.get("metadonnees")["categories"]
                             keywords = obj_meta.get("metadonnees")["mots_clefs"]
-                            INSPIRE = obj_meta.get("metadonnees")["themes_inspire"]
+                            obj_meta.get("metadonnees")["themes_inspire"]
                             Description = obj_meta.get("metadonnees_commentaire")
                             id_thematique = obj_meta.get("thematique_id")
                             Meta_titre = obj_meta.get("metadonnees_titre")
@@ -271,18 +284,20 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                             for obj_them in tab_thematique:
                                 id_objet_them = obj_them.get("id")
                                 if id_objet_them == id_thematique:
-                                    theme_categories = obj_them.get(
-                                        "metadonnees")["categories"]
-                                    theme_keywords = obj_them.get(
-                                        "metadonnees")["mots_clefs"]
-                                    thematique_description = obj_them.get(
-                                        "description")
+                                    theme_categories = obj_them.get("metadonnees")[
+                                        "categories"
+                                    ]
+                                    theme_keywords = obj_them.get("metadonnees")[
+                                        "mots_clefs"
+                                    ]
+                                    thematique_description = obj_them.get("description")
                             if categories is not None and theme_categories is not None:
                                 # Remplacer les éléments de theme_categories par leurs correspondances
                                 for i in range(len(theme_categories)):
                                     if theme_categories[i] in self.dict_cat_iso:
                                         theme_categories[i] = self.dict_cat_iso[
-                                            theme_categories[i]]
+                                            theme_categories[i]
+                                        ]
                                 theme_categories.extend(categories)
                                 categories = theme_categories
                             elif categories is None and theme_categories is not None:
@@ -310,52 +325,96 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                             meta_contact.email = contact_mail
                             meta_contact.role = "custodian"
                             address = QgsLayerMetadata.Address()
-                            #address.type = 'postal'
-                            address.address = '3 Rue Malakoff'
-                            address.city = 'Grenoble'
-                            #address.administrativeArea = 'anyprovince'
-                            address.postalCode = '38100'
-                            #address.country = 'France'
+                            # address.type = 'postal'
+                            address.address = "3 Rue Malakoff"
+                            address.city = "Grenoble"
+                            # address.administrativeArea = 'anyprovince'
+                            address.postalCode = "38100"
+                            # address.country = 'France'
                             meta_contact.addresses = [address]
 
                         # On remplie la partie Résumé
                         res = None
-                        if layer.type() != QgsMapLayerType.RasterLayer or layer.type(
-                        ) != QgsMapLayerType.TileLayer:
+                        if (
+                            layer.type() != QgsMapLayerType.RasterLayer
+                            or layer.type() != QgsMapLayerType.TileLayer
+                        ):
                             titre = "Liste des commentaires des colonnes:"
                             com_col = ""
                             titre_2 = "Résumé de la couche:"
                             com_lay = layer.metadata().abstract()
                             if com_lay is None:
                                 com_lay = Description
-                            if titre_2 in com_lay:  #ce morceau corresponds à la mise à jour du résumé uniquement en cas de change dans la base mais aussi evite les doublons
+                            if (
+                                titre_2 in com_lay
+                            ):  # ce morceau corresponds à la mise à jour du résumé uniquement en cas de change dans la base mais aussi evite les doublons
                                 start = titre_2
                                 end = titre
-                                com_lay = ((com_lay.split(start))[1].split(end)[0])
+                                com_lay = (com_lay.split(start))[1].split(end)[0]
                                 com_lay = com_lay.strip()
                             for entite in layer.fields():
-                                if len(entite.comment()) != 0 and len(
-                                        entite.alias()) != 0:
-                                    com_col = com_col + "\n" + (
-                                        "- " + entite.name().capitalize() + " (" +
-                                        entite.alias() + ")" + ": " +
-                                        entite.comment().capitalize())
-                                elif len(entite.comment()) != 0 and len(
-                                        entite.alias()) == 0:
-                                    com_col = com_col + "\n" + (
-                                        "- " + entite.name().capitalize() + ": " +
-                                        entite.comment().capitalize())
-                                elif len(entite.comment()) == 0 and len(
-                                        entite.alias()) != 0:
-                                    com_col = com_col + "\n" + (
-                                        "- " + entite.name().capitalize() + " (" +
-                                        entite.alias() + ")")
+                                if (
+                                    len(entite.comment()) != 0
+                                    and len(entite.alias()) != 0
+                                ):
+                                    com_col = (
+                                        com_col
+                                        + "\n"
+                                        + (
+                                            "- "
+                                            + entite.name().capitalize()
+                                            + " ("
+                                            + entite.alias()
+                                            + ")"
+                                            + ": "
+                                            + entite.comment().capitalize()
+                                        )
+                                    )
+                                elif (
+                                    len(entite.comment()) != 0
+                                    and len(entite.alias()) == 0
+                                ):
+                                    com_col = (
+                                        com_col
+                                        + "\n"
+                                        + (
+                                            "- "
+                                            + entite.name().capitalize()
+                                            + ": "
+                                            + entite.comment().capitalize()
+                                        )
+                                    )
+                                elif (
+                                    len(entite.comment()) == 0
+                                    and len(entite.alias()) != 0
+                                ):
+                                    com_col = (
+                                        com_col
+                                        + "\n"
+                                        + (
+                                            "- "
+                                            + entite.name().capitalize()
+                                            + " ("
+                                            + entite.alias()
+                                            + ")"
+                                        )
+                                    )
                                 com_col = com_col.replace("(", "[").replace(")", "]")
                             if len(com_col) != 0 and len(com_lay) != 0:
                                 if titre in com_lay and titre_2 not in com_lay:
                                     res = titre + "\n" + com_col
                                 else:
-                                    res = titre_2 + "\n" + "\n" + com_lay + "\n" + "\n" + titre + "\n" + com_col
+                                    res = (
+                                        titre_2
+                                        + "\n"
+                                        + "\n"
+                                        + com_lay
+                                        + "\n"
+                                        + "\n"
+                                        + titre
+                                        + "\n"
+                                        + com_col
+                                    )
                             elif len(com_lay) == 0 and len(com_col) != 0:
                                 res = titre + "\n" + com_col
                             elif len(com_lay) != 0 and len(com_col) == 0:
@@ -365,17 +424,33 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
 
                             # On ajoute le résumé de la thématique
                             titre_res_theme = "Résumé sur la thématique:"
-                            if thematique_description is not None and titre_res_theme not in res:
-                                res = titre_res_theme + "\n" + thematique_description + "\n" + "\n" + res
-                            elif thematique_description is not None and titre_res_theme in res:
+                            if (
+                                thematique_description is not None
+                                and titre_res_theme not in res
+                            ):
+                                res = (
+                                    titre_res_theme
+                                    + "\n"
+                                    + thematique_description
+                                    + "\n"
+                                    + "\n"
+                                    + res
+                                )
+                            elif (
+                                thematique_description is not None
+                                and titre_res_theme in res
+                            ):
                                 searche_theme = re.search(
-                                    rf"{titre_res_theme}\s*(.*?)\s*$", res,
-                                    re.DOTALL | re.MULTILINE)
+                                    rf"{titre_res_theme}\s*(.*?)\s*$",
+                                    res,
+                                    re.DOTALL | re.MULTILINE,
+                                )
                                 if searche_theme:
                                     texte_extrait = searche_theme.group(1)
                                     if texte_extrait != thematique_description:
-                                        res = res.replace(texte_extrait,
-                                                        thematique_description)
+                                        res = res.replace(
+                                            texte_extrait, thematique_description
+                                        )
 
                         # On remplie le Titre
                         title = layer_meta.title()
@@ -384,43 +459,62 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
 
                         # On remplie la partie Liens
                         link_metro = QgsAbstractMetadataBase.Link()
-                        link_metro.name = 'Grenoble-Alpes Métropole'
-                        link_metro.type = 'https'
-                        link_metro.description = 'Site de la Métropole'
-                        link_metro.url = ' https://www.grenoblealpesmetropole.fr/'
-                        link_metro.format = 'HTTPS'
+                        link_metro.name = "Grenoble-Alpes Métropole"
+                        link_metro.type = "https"
+                        link_metro.description = "Site de la Métropole"
+                        link_metro.url = " https://www.grenoblealpesmetropole.fr/"
+                        link_metro.format = "HTTPS"
 
                         list_links = [link_metro]
-                        if layer_meta.licenses() != [] and layer_meta.licenses(
-                        )[0] == "Licence ouverte (OpenDATA)":
+                        if (
+                            layer_meta.licenses() != []
+                            and layer_meta.licenses()[0] == "Licence ouverte (OpenDATA)"
+                        ):
                             link_wms = QgsAbstractMetadataBase.Link()
                             link_wms.name = layer_name
-                            link_wms.type = 'OGC-WMS Capabilities service (ver 1.3.0)'
+                            link_wms.type = "OGC-WMS Capabilities service (ver 1.3.0)"
                             link_wms.description = layer_name
-                            link_wms.url = "https://geoflux.grenoblealpesmetropole.fr/geoserver/" + layer_schema + "/ows?SERVICE=WMS&"
-                            link_wms.format = 'WMS'
+                            link_wms.url = (
+                                "https://geoflux.grenoblealpesmetropole.fr/geoserver/"
+                                + layer_schema
+                                + "/ows?SERVICE=WMS&"
+                            )
+                            link_wms.format = "WMS"
 
                             link_kml = QgsAbstractMetadataBase.Link()
                             link_kml.name = "Format KML"
-                            link_kml.type = 'WWW:DOWNLOAD-1.0-http--download'
+                            link_kml.type = "WWW:DOWNLOAD-1.0-http--download"
                             link_kml.description = layer_name
-                            link_kml.url = "https://geoflux.grenoblealpesmetropole.fr/geoserver/" + layer_schema + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=" + layer_schema + "%3A" + layer.name(
-                            ) + "&outputFormat=kml"
-                            link_kml.format = 'KML'
+                            link_kml.url = (
+                                "https://geoflux.grenoblealpesmetropole.fr/geoserver/"
+                                + layer_schema
+                                + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
+                                + layer_schema
+                                + "%3A"
+                                + layer.name()
+                                + "&outputFormat=kml"
+                            )
+                            link_kml.format = "KML"
 
                             link_geojson = QgsAbstractMetadataBase.Link()
                             link_geojson.name = "Format Geojson"
-                            link_geojson.type = 'WWW:DOWNLOAD-1.0-http--download'
+                            link_geojson.type = "WWW:DOWNLOAD-1.0-http--download"
                             link_geojson.description = layer_name
-                            link_geojson.url = "https://geoflux.grenoblealpesmetropole.fr/geoserver/" + layer_schema + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=" + layer_schema + "%3A" + layer.name(
-                            ) + "&outputFormat=application%2Fjson"
-                            link_geojson.format = 'GeoJSON'
+                            link_geojson.url = (
+                                "https://geoflux.grenoblealpesmetropole.fr/geoserver/"
+                                + layer_schema
+                                + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
+                                + layer_schema
+                                + "%3A"
+                                + layer.name()
+                                + "&outputFormat=application%2Fjson"
+                            )
+                            link_geojson.format = "GeoJSON"
                             params_WMS = {
                                 "request": "GetCapabilities",
                                 "service": "WMS",
                             }
-                            response_wms = requests.get(link_wms.url,
-                                                        params=params_WMS)
+                            response_wms = requests.get(link_wms.url, params=params_WMS)
                             response_kml = requests.get(link_kml.url)
                             response_geojson = requests.get(link_kml.url)
                             if response_kml.status_code == 200:
@@ -439,18 +533,25 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                         ext = QgsLayerMetadata.Extent()
                         se = QgsLayerMetadata.SpatialExtent()
                         se.extentCrs = target_crs
-                        transform = QgsCoordinateTransform(source_crs, target_crs,
-                                                        QgsProject.instance())
+                        transform = QgsCoordinateTransform(
+                            source_crs, target_crs, QgsProject.instance()
+                        )
                         bounds = QgsBox3d(xmin, ymin, 0, xmax, ymax, 0)
-                        source_rect = QgsRectangle(bounds.xMinimum(),
-                                                bounds.yMinimum(),
-                                                bounds.xMaximum(),
-                                                bounds.yMaximum())
+                        source_rect = QgsRectangle(
+                            bounds.xMinimum(),
+                            bounds.yMinimum(),
+                            bounds.xMaximum(),
+                            bounds.yMaximum(),
+                        )
                         target_rect = transform.transform(source_rect)
-                        se.bounds = QgsBox3d(target_rect.xMinimum(),
-                                            target_rect.yMinimum(), 0,
-                                            target_rect.xMaximum(),
-                                            target_rect.yMaximum(), 0)
+                        se.bounds = QgsBox3d(
+                            target_rect.xMinimum(),
+                            target_rect.yMinimum(),
+                            0,
+                            target_rect.xMaximum(),
+                            target_rect.yMaximum(),
+                            0,
+                        )
                         ext.setSpatialExtents([se])
 
                         # On remplie la partie Catégories et mots clés
@@ -459,7 +560,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                         if keywords is not None:
                             if not isinstance(keywords, list):
                                 keywords = [keywords]
-                            layer_meta.setKeywords({'': keywords})
+                            layer_meta.setKeywords({"": keywords})
                         if categories != None:
                             layer_meta.setCategories(categories)
                         # On met à jour les metadonnées
@@ -473,7 +574,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                             layer_meta.setLicenses([Licence])
                         layer.setMetadata(layer_meta)
                     self.MetaMessage()
-                    #self.activateWindow() # pour remettre la page du plugin en premier plan
+                    # self.activateWindow() # pour remettre la page du plugin en premier plan
                     self.LayersTree()
                     self.setTree()
                     self.treeLayersColor()
@@ -481,27 +582,29 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                 else:
                     msg = QMessageBox()
                     msg.setIcon(QMessageBox.Critical)
-                    msg.setText("Aucune couche dans votre projet est une couche principale!")
+                    msg.setText(
+                        "Aucune couche dans votre projet est une couche principale!"
+                    )
                     msg.setWindowTitle("Erreur")
-                    msg.exec_()        
+                    msg.exec_()
 
     def MetaMessage(self):
         """_summary_
-        
+
         Fonction qui renvoie aprés l'auto-remplissage des métadonnées.
-        
+
         """
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Information)
         msg.setText("Les fiches métadonnées sont remplies!")
         msg.setWindowTitle("Information metadata")
-        #msg.exec_()
+        # msg.exec_()
 
     def MetaQgisValidation(self, layer_name):
         """_summary_
 
         Cette fonction effectue une validation de la métadonnée pour une couche à l'aide de la classe QgsNativeMetadataValidator de QGIS. La méthode (QgsNativeMetadataValidator) retourne une liste de résultats de validation, et la première valeur de cette liste est renvoyée en sortie de fonction.
-        
+
         Args:
             layer_name (str): nom de la couche.
         """
@@ -509,49 +612,65 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
         meta = layer[0].metadata()
         validator = QgsNativeMetadataValidator()
         validation = validator.validate(meta)
-        return (validation[0])
+        return validation[0]
 
     def PluginClose(self):
         """_summary_
-        
+
         Fonction qui ferme le plugin.
-        
+
         """
         self.close()
 
     def LayersTree(self):
         """_summary_
-        
-        Cette fonction serre à structure l'arbre du plugin (le tableau qui affiche toutes les informations sur les métadonnées). 
+
+        Cette fonction serre à structure l'arbre du plugin (le tableau qui affiche toutes les informations sur les métadonnées).
         Sans remplir d'information elle définit uniquement sa squelette.
-        
+
         """
-        #list_licenses = ["","Licence Ouverte version 2.0","ODC Open Database License (ODbL) version 1.0","Apache License 2.0","BSD 2-Clause (Simplified) License","BSD 3-Clause (New) or (Revised) License","CeCILL-B Free Software License Agreement","MIT License","CeCILL Free Software License Agreement v2.1","CeCILL-C Free Software License Agreement","GNU General Public License v3.0 or later","GNU Lesser General Public License v3.0 or later","GNU Affero General Public License v3.0 or later","Mozilla Public License 2.0","Eclipse Public License 2.0","European Union Public License 1.2"]
+        # list_licenses = ["","Licence Ouverte version 2.0","ODC Open Database License (ODbL) version 1.0","Apache License 2.0","BSD 2-Clause (Simplified) License","BSD 3-Clause (New) or (Revised) License","CeCILL-B Free Software License Agreement","MIT License","CeCILL Free Software License Agreement v2.1","CeCILL-C Free Software License Agreement","GNU General Public License v3.0 or later","GNU Lesser General Public License v3.0 or later","GNU Affero General Public License v3.0 or later","Mozilla Public License 2.0","Eclipse Public License 2.0","European Union Public License 1.2"]
         list_licenses = [
-            "", "Licence ouverte (OpenDATA)",
-            "Licence fermée (Uniquement en interne)"
+            "",
+            "Licence ouverte (OpenDATA)",
+            "Licence fermée (Uniquement en interne)",
         ]
 
         list_themes_inspire = [
-            "Altitude", "Occupation des terres", "Ortho-imagerie", "Géologie",
-            "Unités statistiques", "Installations de suivi environnemental",
-            "Bâtiments", "Sols", "Usage des sols",
+            "Altitude",
+            "Occupation des terres",
+            "Ortho-imagerie",
+            "Géologie",
+            "Unités statistiques",
+            "Installations de suivi environnemental",
+            "Bâtiments",
+            "Sols",
+            "Usage des sols",
             "Santé et sécurité des personnes",
             "Services d'utilité publique et services publics",
             "Lieux de production et sites industriels",
             "Installations agricoles et aquacoles",
             "Répartition de la population — démographie",
             "Zones de gestion, de restriction ou de réglementation et unités de déclaration",
-            "Zones à risque naturel", "Conditions atmosphériques",
+            "Zones à risque naturel",
+            "Conditions atmosphériques",
             "Caractéristiques géographiques océanographiques",
-            "Régions maritimes", "Régions biogéographiques",
-            "Habitats et biotopes", "Répartition des espèces",
-            "Sources d'énergie", "Ressources minérales",
-            "Référentiels de coordonnées", "Systèmes de maillage géographique",
-            "Dénominations géographiques", "Unités administratives",
-            "Adresses", "Parcelles cadastrales", "Réseaux de transport",
-            "Hydrographie", "Sites protégés",
-            "Caractéristiques géographiques météorologiques"
+            "Régions maritimes",
+            "Régions biogéographiques",
+            "Habitats et biotopes",
+            "Répartition des espèces",
+            "Sources d'énergie",
+            "Ressources minérales",
+            "Référentiels de coordonnées",
+            "Systèmes de maillage géographique",
+            "Dénominations géographiques",
+            "Unités administratives",
+            "Adresses",
+            "Parcelles cadastrales",
+            "Réseaux de transport",
+            "Hydrographie",
+            "Sites protégés",
+            "Caractéristiques géographiques météorologiques",
         ]
         popup_texts = [
             "Modèles numériques pour l'altitude des surfaces terrestres, glaciaires et océaniques. Comprend l'altitude terrestre, la bathymétrie et la ligne de rivage.",
@@ -587,16 +706,15 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
             "Réseaux routier, ferroviaire, aérien et navigable ainsi que les infrastructures associées. Sont également incluses les correspondances entre les différents réseaux, ainsi que le réseau transeuropéen de transport tel que défini dans la décision no 1692/96/CE du Parlement européen et du Conseil du 23 juillet 1996 sur les orientations communautaires pour le développement du réseau transeuropéen de transport [1] et les révisions futures de cette décision.",
             "Éléments hydrographiques, y compris les zones maritimes ainsi que toutes les autres masses d'eau et les éléments qui y sont liés, y compris les bassins et sous-bassins hydrographiques. Conformes, le cas échéant, aux définitions établies par la directive 2000/60/CE du Parlement européen et du Conseil du 23 octobre 2000 établissant un cadre pour une politique communautaire dans le domaine de l'eau [2] et sous forme de réseaux.",
             "Zone désignée ou gérée dans un cadre législatif international, communautaire ou national en vue d'atteindre des objectifs spécifiques de conservation.",
-            "Conditions météorologiques et leur mesure: précipitations, température, évapotranspiration, vitesse et direction du vent."
+            "Conditions météorologiques et leur mesure: précipitations, température, évapotranspiration, vitesse et direction du vent.",
         ]
 
         self.treeWidget.clear()
         tree = self.treeWidget
         tree.setColumnCount(4)
-        tree.setHeaderLabels([
-            "Geonetwork", "Couches", "Champs de métadonnées manquants",
-            "A compléter"
-        ])
+        tree.setHeaderLabels(
+            ["Geonetwork", "Couches", "Champs de métadonnées manquants", "A compléter"]
+        )
         project = QgsProject.instance()
         for layer in project.mapLayers().values():
             layer_meta = layer.metadata()
@@ -607,7 +725,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                         attribut = QTreeWidgetItem(tree)
                         checkbox = QCheckBox()
                         # Ajoutez le QCheckBox à la première colonne de l'élément
-                        #attribut.setCheckState(0, Qt.Unchecked)
+                        # attribut.setCheckState(0, Qt.Unchecked)
                         tree.setItemWidget(attribut, 0, checkbox)
                         attribut.setText(1, str(layer_name))
 
@@ -619,10 +737,11 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                         attribut.addChild(item_inspire)
                         tree.setItemWidget(item_inspire, 3, value_inspire)
                         for j in range(value_inspire.count()):
-                            combo_box_item = value_inspire.itemText(j)
+                            value_inspire.itemText(j)
                             popup_text = popup_texts[j]
-                            value_inspire.setItemData(j, popup_text,
-                                                    QtCore.Qt.ToolTipRole)
+                            value_inspire.setItemData(
+                                j, popup_text, QtCore.Qt.ToolTipRole
+                            )
 
                         item_keywords = QTreeWidgetItem(attribut)
                         item_keywords.setText(2, str("Mots-clés"))
@@ -644,7 +763,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                         value_licences = QComboBox()
                         value_licences.addItems(list_licenses)
                         item_licenses.setText(2, str("Licence"))
-                        #item_licenses.setForeground(2, QColor(255, 165, 0))
+                        # item_licenses.setForeground(2, QColor(255, 165, 0))
                         attribut.addChild(item_licenses)
                         tree.setItemWidget(item_licenses, 3, value_licences)
 
@@ -654,7 +773,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                                 item_titre.setText(2, str("titre"))
                                 item_titre.setForeground(2, QBrush(Qt.red))
                                 value_titre = QLineEdit()
-                                #value_titre.setObjectName("value_titre"+layer_name)
+                                # value_titre.setObjectName("value_titre"+layer_name)
                                 attribut.addChild(item_titre)
                                 tree.setItemWidget(item_titre, 3, value_titre)
                             if layer_meta.abstract() == "":
@@ -686,8 +805,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                         end = source.find(".")
                         layer_schema = source[start:end]
                         layer_schema = layer_schema[1:-1]
-                        self.getNewTreeVal(parent, layer_name, layer_meta,
-                                        layer_schema)
+                        self.getNewTreeVal(parent, layer_name, layer_meta, layer_schema)
                         layer.setMetadata(layer_meta)
                         dict_inspire = self.dictTreeInspireVal()
             self.LayersTree()
@@ -738,7 +856,6 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                         if value != "":
                             mot = ""
                             listMot = []
-                            compt = 0
                             if value:
                                 for lettre in value:
                                     if lettre == ",":
@@ -748,11 +865,13 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                                         mot += lettre
                                 listMot.append(mot)
                             for item in listMot[::-1]:
-                                if item == '':
+                                if item == "":
                                     listMot.remove(item)
-                            metadata.setKeywords({
-                                '': listMot,
-                            })
+                            metadata.setKeywords(
+                                {
+                                    "": listMot,
+                                }
+                            )
                             mots_clefs_escaped = []
                             for item in listMot:
                                 escaped_item = item.replace("'", "''")
@@ -764,9 +883,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                         for item in selected_cat:
                             if item in self.dict_cat_iso:
                                 value.append(self.dict_cat_iso[item])
-                        modified_value = [
-                            item.replace("'", "''") for item in value
-                        ]
+                        modified_value = [item.replace("'", "''") for item in value]
                         if value != "":
                             metadata.setCategories(value)
                             categories = modified_value
@@ -782,34 +899,54 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                     elif child.text(2) == "Licence":
                         value = widget.currentText()
                         link_metro = QgsAbstractMetadataBase.Link()
-                        link_metro.name = 'Grenoble-Alpes Métropole'
-                        link_metro.type = 'https'
-                        link_metro.description = 'Site de la Métropole'
-                        link_metro.url = ' https://www.grenoblealpesmetropole.fr/'
-                        link_metro.format = 'HTTPS'
+                        link_metro.name = "Grenoble-Alpes Métropole"
+                        link_metro.type = "https"
+                        link_metro.description = "Site de la Métropole"
+                        link_metro.url = " https://www.grenoblealpesmetropole.fr/"
+                        link_metro.format = "HTTPS"
 
                         list_links = [link_metro]
 
                         link_wms = QgsAbstractMetadataBase.Link()
                         link_wms.name = parent_text
-                        link_wms.type = 'OGC-WMS Capabilities service (ver 1.3.0)'
+                        link_wms.type = "OGC-WMS Capabilities service (ver 1.3.0)"
                         link_wms.description = parent_text
-                        link_wms.url = "https://geoflux.grenoblealpesmetropole.fr/geoserver/" + layer_schema + "/ows?SERVICE=WMS&"
-                        link_wms.format = 'WMS'
+                        link_wms.url = (
+                            "https://geoflux.grenoblealpesmetropole.fr/geoserver/"
+                            + layer_schema
+                            + "/ows?SERVICE=WMS&"
+                        )
+                        link_wms.format = "WMS"
 
                         link_kml = QgsAbstractMetadataBase.Link()
                         link_kml.name = "Format KML"
-                        link_kml.type = 'WWW:DOWNLOAD-1.0-http--download'
+                        link_kml.type = "WWW:DOWNLOAD-1.0-http--download"
                         link_kml.description = parent_text
-                        link_kml.url = "https://geoflux.grenoblealpesmetropole.fr/geoserver/" + layer_schema + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=" + layer_schema + "%3A" + parent_text + "&outputFormat=kml"
-                        link_kml.format = 'KML'
+                        link_kml.url = (
+                            "https://geoflux.grenoblealpesmetropole.fr/geoserver/"
+                            + layer_schema
+                            + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
+                            + layer_schema
+                            + "%3A"
+                            + parent_text
+                            + "&outputFormat=kml"
+                        )
+                        link_kml.format = "KML"
 
                         link_geojson = QgsAbstractMetadataBase.Link()
                         link_geojson.name = "Format Geojson"
-                        link_geojson.type = 'WWW:DOWNLOAD-1.0-http--download'
+                        link_geojson.type = "WWW:DOWNLOAD-1.0-http--download"
                         link_geojson.description = parent_text
-                        link_geojson.url = "https://geoflux.grenoblealpesmetropole.fr/geoserver/" + layer_schema + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=" + layer_schema + "%3A" + parent_text + "&outputFormat=application%2Fjson"
-                        link_geojson.format = 'GeoJSON'
+                        link_geojson.url = (
+                            "https://geoflux.grenoblealpesmetropole.fr/geoserver/"
+                            + layer_schema
+                            + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
+                            + layer_schema
+                            + "%3A"
+                            + parent_text
+                            + "&outputFormat=application%2Fjson"
+                        )
+                        link_geojson.format = "GeoJSON"
 
                         metadata.setLicenses([value])
                         Licence = value
@@ -818,8 +955,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                                 "request": "GetCapabilities",
                                 "service": "WMS",
                             }
-                            response_wms = requests.get(link_wms.url,
-                                                        params=params_WMS)
+                            response_wms = requests.get(link_wms.url, params=params_WMS)
                             response_kml = requests.get(link_kml.url)
                             response_geojson = requests.get(link_kml.url)
                             if response_kml.status_code == 200:
@@ -831,7 +967,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                             metadata.setLinks(list_links)
                         else:
                             metadata.setLinks(list_links)
-                update_requete = f"UPDATE sit_hydre.gest_bdd_rel_objets_thematique SET metadonnees = '{{\"licences\": {json.dumps(Licence)},\"categories\": {json.dumps(categories)}, \"mots_clefs\": {json.dumps(mots_clefs)}, \"themes_inspire\": {json.dumps(themes_inspire)}}}' WHERE objet_id = '{id_objet}' AND niveau = 1"
+                update_requete = f'UPDATE sit_hydre.gest_bdd_rel_objets_thematique SET metadonnees = \'{{"licences": {json.dumps(Licence)},"categories": {json.dumps(categories)}, "mots_clefs": {json.dumps(mots_clefs)}, "themes_inspire": {json.dumps(themes_inspire)}}}\' WHERE objet_id = \'{id_objet}\' AND niveau = 1'
                 if description != None:
                     description = description.replace("'", "''")
                     update_requete2 = f"UPDATE sit_hydre.gest_bdd_rel_objets_thematique SET metadonnees_commentaire = '{description}' WHERE objet_id = '{id_objet}' AND niveau = 1"
@@ -847,8 +983,8 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
     def getTreeInspireVal(self, layer_name):
         """_summary_
 
-        Fonction qui récupere uniquement les nouvelles valeurs concernant les thémes INSPIRE. 
-        
+        Fonction qui récupere uniquement les nouvelles valeurs concernant les thémes INSPIRE.
+
         Args:
             layer_name (str): nom de la couche.
         """
@@ -861,13 +997,13 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                     widget = self.treeWidget.itemWidget(child, 3)
                     if child.text(2) == "Thèmes INSPIRE":
                         value = widget.checkedItems()
-                        return (value)
+                        return value
 
     def dictTreeInspireVal(self):
         """_summary_
-        
+
         Cette fonction  permet de générer un dictionnaire contenant les valeurs des métadonnées INSPIRE afin de ne pas perdre cette information qui n'est pas implémentée dans Qgis.
-        
+
         """
         inspire_dict = {}
         for i in range(self.treeWidget.topLevelItemCount()):
@@ -876,13 +1012,13 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
             inspire_dict[nom_couche] = []
             inspire_val = self.getTreeInspireVal(nom_couche)
             inspire_dict[nom_couche] = inspire_val
-        return (inspire_dict)
+        return inspire_dict
 
     def setTree(self):
         """_summary_
-        
+
         Cette fonction remplit l'arbre pour chaque couche avec les informations existantes en utilisant la fonction SetTreeItems.
-        
+
         """
         parent = self.treeWidget.invisibleRootItem()
         project = QgsProject.instance()
@@ -947,7 +1083,8 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                     elif child.text(2) == "Catégories":
                         categories_selected = metadata.categories()
                         keys_selected = [
-                            k for k, v in self.dict_cat_iso.items()
+                            k
+                            for k, v in self.dict_cat_iso.items()
                             if v in categories_selected
                         ]
                         widget.setCheckedItems(keys_selected)
@@ -962,9 +1099,9 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def checkTreeTitle(self):
         """_summary_
-        
-        Fonction qui vérifie que toutes les fiches de métadonnées ont un titre. 
-        
+
+        Fonction qui vérifie que toutes les fiches de métadonnées ont un titre.
+
         """
         res = True
         root = self.treeWidget.invisibleRootItem()
@@ -975,13 +1112,13 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                 child = parent.child(j)
                 if child.text(2) == "titre" and checkbox.isChecked():
                     res = False
-        return (res)
+        return res
 
     def treeLayersColor(self):
         """_summary_
-        
+
         Fonction qui met en place les couleurs des champs de métadonnées dans l'arbre en fonction de ce qui est remplis ou pas.
-        
+
         """
         root = self.treeWidget.invisibleRootItem()
         for i in range(root.childCount()):
@@ -994,8 +1131,8 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                     parent.setForeground(1, QColor("red"))
                     has_title = True
                 elif child.text(2) == "Résumé de la couche" or (
-                        child.text(2) == "Licence"
-                        and widget.currentIndex() == 0):
+                    child.text(2) == "Licence" and widget.currentIndex() == 0
+                ):
                     if has_title:
                         parent.setForeground(1, QColor("red"))
                     else:
@@ -1005,9 +1142,9 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def get_tree_checkbox_status(self):
         """_summary_
-        
+
         Fonction permet de récuperer la valeur pour le checkbox Geonetwork si ca a été coché ou non.
-        
+
         """
         checkbox_status = {}
         root = self.treeWidget.invisibleRootItem()
@@ -1017,15 +1154,15 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
             checkbox_status[i] = checkbox.isChecked()
         # Stocker le dictionnaire en tant qu'attribut du plugin
         self.tree_checkbox_status = checkbox_status
-        #print('checkbox : '+ str(checkbox_status) )
+        # print('checkbox : '+ str(checkbox_status) )
 
     def set_tree_checkbox_status(self):
         """_summary_
-        
+
         Fonction qui met en place les checkboxes.
-        
+
         """
-        if not hasattr(self, 'tree_checkbox_status'):
+        if not hasattr(self, "tree_checkbox_status"):
             return
         checkbox_status = self.tree_checkbox_status
         root = self.treeWidget.invisibleRootItem()
@@ -1037,9 +1174,9 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def getAuthGN(self):
         """_summary_
-        
+
         Fonction qui récupere les identifiants saisies par l'utilisateur.
-        
+
         Returns:
             username (str): nom d'utilisateur saisie dans le plugin.
             motdepass (str): mot de pass saisie dans le plugin.
@@ -1050,9 +1187,9 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def checkConnexionGN(self):
         """_summary_
-        
+
         Fonction qui vérifie la connexion vers le geonetwork et envoie un message en fonction de la réponse.
-        
+
         """
         username = self.getAuthGN()[0]
         motdepass = self.getAuthGN()[1]
@@ -1087,30 +1224,30 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def populateTabGN(self):
         """_summary_
-        
+
         Fonction qui va gérérer l'affichage des fiches qui sont à envoyer au geonetwork dans le tableau de la fenetre geonetwork.
-        
+
         """
         connexion = self.ConnexionPostgresql()[1]
         cur = connexion.cursor()
         catalogGN = "https://geonetwork.grenoblealpesmetropole.fr/geonetwork/srv/fre/catalog.search#/metadata/"
         self.model = QStandardItemModel(0, 2)
         self.model.setHorizontalHeaderLabels(
-            ["Couches", "Lien vers les fiches métadonnées dans Geonetwork"])
+            ["Couches", "Lien vers les fiches métadonnées dans Geonetwork"]
+        )
         project = QgsProject.instance()
         for i, layer in enumerate(project.mapLayers().values()):
             layer_name = layer.name()
             layer_meta = layer.metadata()
             uuid = layer_meta.identifier()
-            #print('uuid : %',uuid)
+            # print('uuid : %',uuid)
             MetaID = self.getMetaID(uuid)
             if self.tree_checkbox_status != None:
                 if self.tree_checkbox_status.get(i):
                     MetaID = MetaID[0]
                     item1 = QStandardItem(layer_name)
                     item2 = QStandardItem(catalogGN + MetaID)
-                    item2.setForeground(
-                        QBrush(QColor("blue"), style=Qt.SolidPattern))
+                    item2.setForeground(QBrush(QColor("blue"), style=Qt.SolidPattern))
                     item2.setTextAlignment(Qt.AlignCenter)
                     item2.setSelectable(True)
                     item2.setEditable(False)
@@ -1132,7 +1269,7 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
         """_summary_
 
         Fonction qui est appelé lorsqu'on clique deux fois sur une cellule de la table des liens geonetwork.Son rôle est de récupérer l'URL stockée dans les données utilisateur de la cellule correspondante, puis d'ouvrir cette URL dans le navigateur par défaut
-        
+
         Args:
             index (objet): représente l'index de la cellule double-cliquée.
         """
@@ -1150,29 +1287,39 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                     layer_type = "textTable"
                 else:
                     layer_type = "vector"
-            elif layer.type() == QgsMapLayerType.RasterLayer or layer.type(
-            ) == QgsMapLayerType.TileLayer:
+            elif (
+                layer.type() == QgsMapLayerType.RasterLayer
+                or layer.type() == QgsMapLayerType.TileLayer
+            ):
                 layer_type = "grid"
             else:
                 layer_type = "unknown"
-        return (layer_type)
+        return layer_type
 
     def getLayerDenominateur(self, layer):
         layer_extent = layer.extent()
         layer_scale = max(layer_extent.width(), layer_extent.height())
         arrondis = [
-            1000, 5000, 10000, 25000, 50000, 100000, 200000, 300000, 500000,
-            1000000
+            1000,
+            5000,
+            10000,
+            25000,
+            50000,
+            100000,
+            200000,
+            300000,
+            500000,
+            1000000,
         ]
         echelle_arrondie = min(arrondis, key=lambda x: abs(x - layer_scale))
-        return (echelle_arrondie)
+        return echelle_arrondie
 
     def addInspire_to_xml(self):
         """_summary_
-        
-        Fonction qui permet de créer le fichier .zip contenant toutes les information d'une fiche de métadonnées à l'aide de la fonction createZip. 
+
+        Fonction qui permet de créer le fichier .zip contenant toutes les information d'une fiche de métadonnées à l'aide de la fonction createZip.
         Mais aussi permet d'ajouter les valeurs INSPIRE dans la partie xml de ce fichier.
-        
+
         """
         project = QgsProject.instance()
         username = self.getAuthGN()[0]
@@ -1190,24 +1337,45 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
                     LayerDominateur = self.getLayerDenominateur(layer)
                     if self.tree_checkbox_status.get(i):
                         MetaID = MetaID[0]
-                        datePublication = getMetaDateGN(username, motdepass,
-                                                        MetaID)
-                        createZip(layer_name, MetaID, Inspire_keywords, LayerType,
-                                LayerDominateur, datePublication)
-                        print ('''nom layer : '''+ str(layer_name) + '''
-                                uuid : ''' + str(uuid) + '''
-                                UUID méta : '''+ str(MetaID) + '''
-                                Métadonnées : '''+ str(Inspire_keywords) + '''
-                                Type : '''+ str(LayerType) + '''
-                                Dominateur : '''+ str(LayerDominateur) + '''
-                                Date publication : '''+ str(datePublication) + '''
-                                envoi sur geonetwork : OK ''' )                       
+                        datePublication = getMetaDateGN(username, motdepass, MetaID)
+                        createZip(
+                            layer_name,
+                            MetaID,
+                            Inspire_keywords,
+                            LayerType,
+                            LayerDominateur,
+                            datePublication,
+                        )
+                        print(
+                            """nom layer : """
+                            + str(layer_name)
+                            + """
+                                uuid : """
+                            + str(uuid)
+                            + """
+                                UUID méta : """
+                            + str(MetaID)
+                            + """
+                                Métadonnées : """
+                            + str(Inspire_keywords)
+                            + """
+                                Type : """
+                            + str(LayerType)
+                            + """
+                                Dominateur : """
+                            + str(LayerDominateur)
+                            + """
+                                Date publication : """
+                            + str(datePublication)
+                            + """
+                                envoi sur geonetwork : OK """
+                        )
 
     def launch_MetaPost(self):
         """_summary_
-        
+
         Gestion du répertoire temporaire temp et envoie des fiches vers le geonetwork.
-        
+
         """
         removeAllZipFiles()
         self.addInspire_to_xml()
@@ -1218,9 +1386,9 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def updateProgressBar(self):
         """_summary_
-        
+
         Gestion des messages d'erreur. Et mise à jour de la barre d'évolution.
-        
+
         """
         self.progressBar.setRange(0, 100)
         self.progressBar.setValue(0)

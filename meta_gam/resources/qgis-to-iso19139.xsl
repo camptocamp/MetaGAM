@@ -75,7 +75,7 @@
                     </gmd:role>
                 </gmd:CI_ResponsibleParty>
             </gmd:contact>
-            
+
             <gmd:dateStamp>
                 <gco:DateTime>
                     <xsl:value-of select="substring(date:date(), 1, 10)"/>
@@ -374,7 +374,7 @@
                                 </gmd:temporalElement>
                             </gmd:EX_Extent>
                         </gmd:extent>
-                    </xsl:if>       
+                    </xsl:if>
                     <!--extent-->
                     <xsl:choose>
                         <!-- There's a spatial extent in 4326? -->
