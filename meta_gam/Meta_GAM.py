@@ -163,7 +163,7 @@ class MetaGAM:
 
         return action
 
-    def init_gui(self):
+    def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
         icon_path = ":/plugins/Meta_GAM/icon.png"

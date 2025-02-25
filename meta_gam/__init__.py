@@ -24,7 +24,7 @@
 """
 
 
-def meta_gam_factory(iface):
+def classFactory(iface):
     """Load MetaGAM class from file MetaGAM.
 
     :param iface: A QGIS interface instance.
