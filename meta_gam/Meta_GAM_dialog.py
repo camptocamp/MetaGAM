@@ -114,6 +114,9 @@ class MetaGAMDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pbCancel.clicked.connect(self.PluginClose)
 
     def ConnexionPostgresqlPassword(self):
+
+        if self.ConnexionPostgresql()[0]:
+            return True
         # Créer une instance de QDialog
         dialog = QDialog()
 
