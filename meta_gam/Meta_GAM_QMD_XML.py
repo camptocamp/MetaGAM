@@ -33,19 +33,13 @@ from xml.etree import ElementTree
 from xml.etree.ElementTree import Element, SubElement
 
 import lxml.etree as lxml
-from PyQt5.QtCore import (
-    QSize
-)
-from PyQt5.QtGui import (
-    QImage,
-    QPainter,
-    QColor
-)
+from PyQt5.QtCore import QSize
+from PyQt5.QtGui import QImage, QPainter, QColor
 from qgis.core import (
     QgsProject,
     QgsMapSettings,
     QgsRectangle,
-    QgsMapRendererCustomPainterJob
+    QgsMapRendererCustomPainterJob,
 )
 
 GMD_URL = "http://www.isotc211.org/2005/gmd"
@@ -55,8 +49,8 @@ GCO_URL = "http://www.isotc211.org/2005/gco"
 current_file_path = os.path.abspath(__file__)
 ISO_file_path = os.path.join(os.path.dirname(current_file_path), "resources")
 temp_file = os.path.join(os.path.dirname(current_file_path), "temp")
-new_xml_block = """
-    <gmd:pointOfContact xmlns:gmd=GMD_URL xmlns:gco=GCO_URL>
+new_xml_block = f"""
+    <gmd:pointOfContact xmlns:gmd="{GMD_URL}" xmlns:gco="{GCO_URL}">
         <gmd:CI_ResponsibleParty>
             <gmd:individualName>
                 <gco:CharacterString></gco:CharacterString>
