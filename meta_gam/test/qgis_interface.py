@@ -95,11 +95,11 @@ class QgisInterface(QObject):
         pass  # pylint: disable=unnecessary-pass
 
     @pyqtSlot()
-    def removeAllLayers(self):  # pylint: disable=no-self-use
+    def removeAllLayers(self):
         """Remove layers from the canvas before they get deleted."""
         self.canvas.setLayers([])
 
-    def newProject(self):  # pylint: disable=no-self-use
+    def newProject(self):
         """Create new project."""
         # noinspection PyArgumentList
         QgsProject.instance().clear()
@@ -147,7 +147,7 @@ class QgisInterface(QObject):
         """
         pass  # pylint: disable=unnecessary-pass
 
-    def activeLayer(self) -> QgsMapLayer:  # pylint: disable=no-self-use
+    def activeLayer(self) -> QgsMapLayer:
         """Get pointer to the active layer (layer selected in the legend)."""
         # noinspection PyArgumentList
         layers = QgsProject.instance().mapLayers()
@@ -215,7 +215,7 @@ class QgisInterface(QObject):
         """Get the legend."""
         return self.canvas
 
-    def iconSize(self, dockedToolbar) -> int:  # pylint: disable=no-self-use
+    def iconSize(self, dockedToolbar) -> int:
         """
         Returns the toolbar icon size.
         :param dockedToolbar: If True, the icon size

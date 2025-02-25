@@ -70,6 +70,8 @@ from qgis.PyQt.uic import loadUiType
 from .Meta_GAM_Geonetwork import connexion_geonetwork, get_meta_date_gn, post_meta_gn
 from .Meta_GAM_QMD_XML import clean_temp, create_zip, remove_all_zip_files
 
+# pylint: disable=too-many-lines
+
 # This loads your .ui file so that PyQt can populate your plugin with the elements from Qt Designer
 FORM_CLASS, _ = loadUiType(
     os.path.join(os.path.dirname(__file__), "Meta_GAM_dialog_base.ui")
@@ -81,15 +83,23 @@ LICENCE_FERMEE = "Licence fermée (Uniquement en interne)"
 GAM_GEOFLUX_URL = "https://geoflux.grenoblealpesmetropole.fr/geoserver"
 THEMES_INSPIRE = "Thèmes INSPIRE"
 
+HTTP_TIMEOUT = 30
+
 
 class MetaGAMDialog(QDialog, FORM_CLASS):
+    """
+    Main dialog class for layer selection, metadata completion
+    and upload to GeoNetwork.
+    """
+
     def __init__(self, parent=None):
         """Constructor."""
-        super(MetaGAMDialog, self).__init__(parent)
+        super().__init__(parent)
         self.setupUi(self)
         self.treeWidget = self.findChild(QTreeWidget, "treeWidget")
         self.tableGN = self.findChild(QTableView, "tableGN")
         self.tableGN.doubleClicked.connect(self.on_table_gn_double_click)
+        self.model = None
         self.layers_niveau = (
             {}
         )  # Dictionnaire pour stocker le nom de la couche et son niveau par rapport à la thématique
@@ -134,6 +144,14 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         self.pbCancel.clicked.connect(self.close_plugin)
 
     def connexion_postgresql_password(self):
+        """
+        Prompts the user to enter their PostgreSQL password.
+
+        Try again until connection is successful
+
+        Returns:
+            bool: True if the connection to PostgreSQL is successful, False otherwise.
+        """
 
         if self.connexion_postgresql()[0]:
             return True
@@ -163,10 +181,20 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             if self.connexion_postgresql()[0]:
                 # La connexion a réussi
                 return True
-            else:
-                return self.connexion_postgresql_password()
+            return self.connexion_postgresql_password()
+        return False
 
     def connexion_postgresql(self):
+        """
+        Establishes a connection to a PostgreSQL database using the provided service name and user password.
+        Returns:
+            tuple: A tuple containing a boolean and the connection object.
+                - True and the connection object if the connection is successful.
+                - False and None if there is an error during the connection attempt.
+        Raises:
+            psycopg2.Error: If there is an error connecting to the PostgreSQL database.
+        """
+
         try:
             connexion = psycopg2.connect(service="bd_prod", password=self.UserPassword)
             return True, connexion
@@ -175,61 +203,79 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             return False, None
 
     def get_metadata_gestion_tab(self):
+        """
+        get liste nom schema objet from database
+        """
         connexion = self.connexion_postgresql()[1]
         cur = connexion.cursor()
         cur.execute("SELECT * FROM sit_hydre.v_liste_nom_schema_objet")
         rows = cur.fetchall()
         columns = [desc[0] for desc in cur.description]
-        json = []
+        json_list = []
         for row in rows:
-            json.append(dict(zip(columns, row)))
-        return json
+            json_list.append(dict(zip(columns, row)))
+        return json_list
 
     def get_metadata_tab(self):
+        """
+        get metadata from database
+        """
         connexion = self.connexion_postgresql()[1]
         cur = connexion.cursor()
         cur.execute("SELECT * FROM sit_hydre.gest_bdd_rel_objets_thematique")
         rows = cur.fetchall()
         columns = [desc[0] for desc in cur.description]
-        json = []
+        json_list = []
         for row in rows:
-            json.append(dict(zip(columns, row)))
-        return json
+            json_list.append(dict(zip(columns, row)))
+        return json_list
 
     def get_contact_tab(self):
+        """
+        get contact from database
+        """
         connexion = self.connexion_postgresql()[1]
         cur = connexion.cursor()
         cur.execute("SELECT * FROM sit_hydre.gest_bdd_contact_referents")
         rows = cur.fetchall()
         columns = [desc[0] for desc in cur.description]
-        json = []
+        json_list = []
         for row in rows:
-            json.append(dict(zip(columns, row)))
-        return json
+            json_list.append(dict(zip(columns, row)))
+        return json_list
 
     def get_thematique_tab(self):
+        """
+        get thematique from database
+        """
         connexion = self.connexion_postgresql()[1]
         cur = connexion.cursor()
         cur.execute("SELECT * FROM sit_hydre.gest_bdd_thematique")
         rows = cur.fetchall()
         columns = [desc[0] for desc in cur.description]
-        json = []
+        json_list = []
         for row in rows:
-            json.append(dict(zip(columns, row)))
-        return json
+            json_list.append(dict(zip(columns, row)))
+        return json_list
 
     def get_contact_ID(self, id_thematique):
+        """
+        get contact ID from database
+        """
         connexion = self.connexion_postgresql()[1]
         cur = connexion.cursor()
         cur.execute(
-            "SELECT contact_referent_id FROM sit_hydre.gest_bdd_rel_thematique_contact_referents WHERE thematique_id = %s",
-            (id_thematique,),
+            "SELECT contact_referent_id FROM sit_hydre.gest_bdd_rel_thematique_contact_referents WHERE "
+            f"thematique_id = '{id_thematique}'",
         )
         rows = cur.fetchall()
         contact_ids = [row[0] for row in rows]
         return contact_ids
 
     def get_meta_ID(self, id_objet):
+        """
+        get meta ID from database
+        """
         # print('id_objet : ' + id_objet)
         if id_objet:
             connexion = self.connexion_postgresql()[1]
@@ -247,7 +293,12 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
     def auto_fill_meta(self):
         """_summary_
 
-        Cette fonction a pour objectif de remplir automatiquement les métadonnées d'une couche dans QGIS. Tout d'abord, elle récupère une couche de contacts à partir de laquelle elle extrait les informations nécessaires pour remplir la partie "contact" des métadonnées de la couche en question. Ensuite, elle récupère l'emprise spatiale de la couche et remplit cette information dans la fiche de métadonnées. Et c'est pareil pour les autres informations de la fiche metadata.
+        Cette fonction a pour objectif de remplir automatiquement les métadonnées d'une couche dans QGIS.
+        Tout d'abord, elle récupère une couche de contacts à partir de laquelle elle extrait les informations
+        nécessaires pour remplir la partie "contact" des métadonnées de la couche en question.
+
+        Ensuite, elle récupère l'emprise spatiale de la couche et remplit cette information dans la fiche
+        de métadonnées. Et c'est pareil pour les autres informations de la fiche metadata.
 
         """
         if self.connexion_postgresql_password():
@@ -284,6 +335,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                 licence = None
                 meta_titre = None
                 thematique_description = None
+                description = None
                 for obj in tab_gestion:
                     id_objet = obj.get("id_objet")
                     nom_objet = obj.get("nom_objet")
@@ -299,30 +351,33 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             licence = obj_meta.get("metadonnees")["licences"]
                             categories = obj_meta.get("metadonnees")["categories"]
                             keywords = obj_meta.get("metadonnees")["mots_clefs"]
-                            obj_meta.get("metadonnees")["themes_inspire"]
+                            _ = obj_meta.get("metadonnees")["themes_inspire"]
                             description = obj_meta.get("metadonnees_commentaire")
                             id_thematique = obj_meta.get("thematique_id")
                             meta_titre = obj_meta.get("metadonnees_titre")
                             contact_id = self.get_contact_ID(id_thematique)
-                            for obj_them in tab_thematique:
-                                id_objet_them = obj_them.get("id")
-                                if id_objet_them == id_thematique:
-                                    theme_categories = obj_them.get("metadonnees")[
+                            theme_categories = None
+                            theme_keywords = None
+                            for obj_theme in tab_thematique:
+                                id_objet_theme = obj_theme.get("id")
+                                if id_objet_theme == id_thematique:
+                                    theme_categories = obj_theme.get("metadonnees")[
                                         "categories"
                                     ]
-                                    theme_keywords = obj_them.get("metadonnees")[
+                                    theme_keywords = obj_theme.get("metadonnees")[
                                         "mots_clefs"
                                     ]
-                                    thematique_description = obj_them.get("description")
+                                    thematique_description = obj_theme.get(
+                                        "description"
+                                    )
                             if categories is not None and theme_categories is not None:
                                 # Remplacer les éléments de theme_categories par leurs correspondances
-                                for i in range(len(theme_categories)):
-                                    if theme_categories[i] in self.dict_cat_iso:
-                                        theme_categories[i] = self.dict_cat_iso[
-                                            theme_categories[i]
-                                        ]
-                                theme_categories.extend(categories)
-                                categories = theme_categories
+                                categories = [
+                                    self.dict_cat_iso.get(
+                                        theme_category, theme_category
+                                    )
+                                    for theme_category in theme_categories
+                                ] + categories
                             elif categories is None and theme_categories is not None:
                                 categories = theme_categories
                             if keywords is not None and theme_keywords is not None:
@@ -370,7 +425,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                                 com_lay = description
                             if (
                                 titre_2 in com_lay
-                            ):  # ce morceau corresponds à la mise à jour du résumé uniquement en cas de change dans la base mais aussi evite les doublons
+                            ):  # ce morceau corresponds à la mise à jour du résumé uniquement
+                                # en cas de change dans la base mais aussi evite les doublons
                                 start = titre_2
                                 end = titre
                                 com_lay = (com_lay.split(start))[1].split(end)[0]
@@ -535,9 +591,15 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                                 "request": "GetCapabilities",
                                 "service": "WMS",
                             }
-                            response_wms = requests.get(link_wms.url, params=params_wms)
-                            response_kml = requests.get(link_kml.url)
-                            response_geojson = requests.get(link_kml.url)
+                            response_wms = requests.get(
+                                link_wms.url, params=params_wms, timeout=HTTP_TIMEOUT
+                            )
+                            response_kml = requests.get(
+                                link_kml.url, timeout=HTTP_TIMEOUT
+                            )
+                            response_geojson = requests.get(
+                                link_kml.url, timeout=HTTP_TIMEOUT
+                            )
                             if response_kml.status_code == 200:
                                 list_links.append(link_kml)
                             if response_geojson.status_code == 200:
@@ -624,7 +686,10 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
     def meta_qgis_validation(self, layer_name):
         """_summary_
 
-        Cette fonction effectue une validation de la métadonnée pour une couche à l'aide de la classe QgsNativeMetadataValidator de QGIS. La méthode (QgsNativeMetadataValidator) retourne une liste de résultats de validation, et la première valeur de cette liste est renvoyée en sortie de fonction.
+        Cette fonction effectue une validation de la métadonnée pour une couche à l'aide de
+        la classe QgsNativeMetadataValidator de QGIS. La méthode (QgsNativeMetadataValidator)
+        retourne une liste de résultats de validation, et la première valeur de cette liste
+        est renvoyée en sortie de fonction.
 
         Args:
             layer_name (str): nom de la couche.
@@ -646,11 +711,19 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
     def layers_tree(self):
         """_summary_
 
-        Cette fonction serre à structure l'arbre du plugin (le tableau qui affiche toutes les informations sur les métadonnées).
+        Cette fonction serre à structure l'arbre du plugin
+        (le tableau qui affiche toutes les informations sur les métadonnées).
         Sans remplir d'information elle définit uniquement sa squelette.
 
         """
-        # list_licenses = ["","Licence Ouverte version 2.0","ODC Open Database License (ODbL) version 1.0","Apache License 2.0","BSD 2-Clause (Simplified) License","BSD 3-Clause (New) or (Revised) License","CeCILL-B Free Software License Agreement","MIT License","CeCILL Free Software License Agreement v2.1","CeCILL-C Free Software License Agreement","GNU General Public License v3.0 or later","GNU Lesser General Public License v3.0 or later","GNU Affero General Public License v3.0 or later","Mozilla Public License 2.0","Eclipse Public License 2.0","European Union Public License 1.2"]
+        # list_licenses = ["","Licence Ouverte version 2.0","ODC Open Database License
+        # (ODbL) version 1.0","Apache License 2.0","BSD 2-Clause (Simplified) License",
+        # "BSD 3-Clause (New) or (Revised) License","CeCILL-B Free Software License Agreement",
+        # "MIT License","CeCILL Free Software License Agreement v2.1",
+        # "CeCILL-C Free Software License Agreement","GNU General Public License v3.0 or later",
+        # "GNU Lesser General Public License v3.0 or later",
+        # "GNU Affero General Public License v3.0 or later","Mozilla Public License 2.0",
+        # "Eclipse Public License 2.0","European Union Public License 1.2"]
         list_licenses = [
             "",
             LICENCE_OUVERTE_OD,
@@ -694,40 +767,127 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             "Caractéristiques géographiques météorologiques",
         ]
         popup_texts = [
-            "Modèles numériques pour l'altitude des surfaces terrestres, glaciaires et océaniques. Comprend l'altitude terrestre, la bathymétrie et la ligne de rivage.",
-            "Couverture physique et biologique de la surface terrestre, y compris les surfaces artificielles, les zones agricoles, les forêts, les zones (semi-)naturelles, les zones humides et les masses d'eau.",
-            "Images géoréférencées de la surface terrestre, provenant de satellites ou de capteurs aéroportés.",
-            "Géologie caractérisée en fonction de la composition et de la structure. Englobe le substratum rocheux, les aquifères et la géomorphologie.",
+            "Modèles numériques pour l'altitude des surfaces terrestres, "
+            "glaciaires et océaniques. Comprend l'altitude terrestre, "
+            "la bathymétrie et la ligne de rivage.",
+            "Couverture physique et biologique de la surface terrestre, y compris "
+            "les surfaces artificielles, les zones agricoles, les forêts, les zones "
+            "(semi-)naturelles, les zones humides et les masses d'eau.",
+            "Images géoréférencées de la surface terrestre, provenant de "
+            "satellites ou de capteurs aéroportés.",
+            "Géologie caractérisée en fonction de la composition et de la structure. "
+            "Englobe le substratum rocheux, les aquifères et la géomorphologie.",
             "Unités de diffusion ou d'utilisation d'autres informations statistiques.",
-            "La situation et le fonctionnement des installations de suivi environnemental comprennent l'observation et la mesure des émissions, de l'état du milieu environnemental et d'autres paramètres de l'écosystème (biodiversité, conditions écologiques de la végétation, etc.) par les autorités publiques ou pour leur compte.",
+            "La situation et le fonctionnement des installations de suivi environnemental "
+            "comprennent l'observation et la mesure des émissions, de l'état du milieu "
+            "environnemental et d'autres paramètres de l'écosystème (biodiversité, conditions "
+            "écologiques de la végétation, etc.) par les autorités publiques ou pour leur compte.",
             "Situation géographique des bâtiments.",
-            "Sols et sous-sol caractérisés selon leur profondeur, texture, structure et teneur en particules et en matières organiques, pierrosité, érosion, le cas échéant pente moyenne et capacité anticipée de stockage de l'eau.",
-            "Territoire caractérisé selon sa dimension fonctionnelle prévue ou son objet socioéconomique actuel et futur (par exemple, résidentiel, industriel, commercial, agricole, forestier, récréatif).",
-            "Répartition géographique des pathologies dominantes (allergies, cancers, maladies respiratoires, etc.) liées directement (pollution de l'air, produits chimiques, appauvrissement de la couche d'ozone, bruit, etc.) ou indirectement (alimentation, organismes génétiquement modifiés, etc.) à la qualité de l'environnement, et ensemble des informations relatif à l'effet de celle-ci sur la santé des hommes (marqueurs biologiques, déclin de la fertilité, épidémies) ou leur bien-être (fatigue, stress, etc.).",
-            "Comprend les installations d'utilité publique, tels que les égouts ou les réseaux et installations liés à la gestion des déchets, à l'approvisionnement énergétique, à l'approvisionnement en eau, ainsi que les services administratifs et sociaux publics, tels que les administrations publiques, les sites de la protection civile, les écoles et les hôpitaux.",
-            "Sites de production industrielle, y compris les installations couvertes par la directive 96/61/CE du Conseil du 24 septembre 1996 relative à la prévention et à la réduction intégrées de la pollution [1] et les installations de captage d'eau, d'extraction minière et de stockage.",
-            "Équipement et installations de production agricoles (y compris les systèmes d'irrigation, les serres et les étables).",
-            "Répartition géographique des personnes, avec les caractéristiques de population et les niveaux d'activité, regroupées par grille, région, unité administrative ou autre unité analytique.",
-            "Zones gérées, réglementées ou utilisées pour les rapports aux niveaux international, européen, national, régional et local. Sont inclus les décharges, les zones restreintes aux alentours des sources d'eau potable, les zones vulnérables aux nitrates, les chenaux réglementés en mer ou les eaux intérieures importantes, les zones destinées à la décharge de déchets, les zones soumises à limitation du bruit, les zones faisant l'objet de permis d'exploration et d'extraction minière, les districts hydrographiques, les unités correspondantes utilisées pour les rapports et les zones de gestion du littoral.",
-            "Zones sensibles caractérisées en fonction des risques naturels (tous les phénomènes atmosphériques, hydrologiques, sismiques, volcaniques, ainsi que les feux de friche qui peuvent, en raison de leur situation, de leur gravité et de leur fréquence, nuire gravement à la société), tels qu'inondations, glissements et affaissements de terrain, avalanches, incendies de forêts, tremblements de terre et éruptions volcaniques.",
-            "Conditions physiques dans l'atmosphère. Comprend les données géographiques fondées sur des mesures, sur des modèles ou sur une combinaison des deux, ainsi que les lieux de mesure.",
-            "Conditions physiques des océans (courants, salinité, hauteur des vagues, etc.).",
-            "Conditions physiques des mers et des masses d'eau salée divisées en régions et en sous-régions à caractéristiques communes.",
-            "Zones présentant des conditions écologiques relativement homogènes avec des caractéristiques communes.",
-            "Zones géographiques ayant des caractéristiques écologiques particulières — conditions, processus, structures et fonctions (de maintien de la vie) — favorables aux organismes qui y vivent. Sont incluses les zones terrestres et aquatiques qui se distinguent par leurs caractéristiques géographiques, abiotiques ou biotiques, qu'elles soient naturelles ou semi-naturelles.",
-            "Répartition géographique de l'occurrence des espèces animales et végétales regroupées par grille, région, unité administrative ou autre unité analytique.",
-            "Sources d'énergie comprenant les hydrocarbures, l'énergie hydraulique, la bioénergie, l'énergie solaire, l'énergie éolienne, etc., le cas échéant accompagnées d'informations relatives à la profondeur/la hauteur de la source.",
-            "Ressources minérales comprenant les minerais métalliques, les minéraux industriels, etc., le cas échéant accompagnées d'informations relatives à la profondeur/la hauteur de la ressource.",
-            "Systèmes de référencement unique des informations géographiques dans l'espace sous forme d'une série de coordonnées (x, y, z) et/ou la latitude et la longitude et l'altitude, en se fondant sur un point géodésique horizontal et vertical.",
-            "Grille multi-résolution harmonisée avec un point d'origine commun et une localisation ainsi qu'une taille des cellules harmonisées.",
-            "Noms de zones, de régions, de localités, de grandes villes, de banlieues, de villes moyennes ou d'implantations, ou tout autre élément géographique ou topographique d'intérêt public ou historique.",
-            "Unités d'administration séparées par des limites administratives et délimitant les zones dans lesquelles les États membres détiennent et/ou exercent leurs compétences, aux fins de l'administration locale, régionale et nationale.",
-            "Localisation des propriétés fondée sur les identifiants des adresses, habituellement le nom de la rue, le numéro de la maison et le code postal.",
+            "Sols et sous-sol caractérisés selon leur profondeur, texture, structure et "
+            "teneur en particules et en matières organiques, pierrosité, érosion, le cas "
+            "échéant pente moyenne et capacité anticipée de stockage de l'eau.",
+            "Territoire caractérisé selon sa dimension fonctionnelle prévue ou son objet "
+            "socioéconomique actuel et futur (par exemple, résidentiel, industriel, "
+            "commercial, agricole, forestier, récréatif).",
+            "Répartition géographique des pathologies dominantes (allergies, cancers, "
+            "maladies respiratoires, etc.) liées directement (pollution de l'air, produits "
+            "chimiques, appauvrissement de la couche d'ozone, bruit, etc.) ou indirectement "
+            "(alimentation, organismes génétiquement modifiés, etc.) à la qualité de "
+            "l'environnement, et ensemble des informations relatif à l'effet de celle-ci "
+            "sur la santé des hommes (marqueurs biologiques, déclin de la fertilité, "
+            "épidémies) ou leur bien-être (fatigue, stress, etc.).",
+            "Comprend les installations d'utilité publique, tels que les égouts ou "
+            "les réseaux et installations liés à la gestion des déchets, à l'approvisionnement "
+            "énergétique, à l'approvisionnement en eau, ainsi que les services administratifs "
+            "et sociaux publics, tels que les administrations publiques, les sites de la "
+            "protection civile, les écoles et les hôpitaux.",
+            "Sites de production industrielle, y compris les installations couvertes par "
+            "la directive 96/61/CE du Conseil du 24 septembre 1996 relative à la prévention "
+            "et à la réduction intégrées de la pollution [1] et les installations de "
+            "captage d'eau, d'extraction minière et de stockage.",
+            "Équipement et installations de production agricoles (y compris les "
+            "systèmes d'irrigation, les serres et les étables).",
+            "Répartition géographique des personnes, avec les caractéristiques de "
+            "population et les niveaux d'activité, regroupées par grille, région, "
+            "unité administrative ou autre unité analytique.",
+            "Zones gérées, réglementées ou utilisées pour les rapports aux niveaux "
+            "international, européen, national, régional et local. Sont inclus les "
+            "décharges, les zones restreintes aux alentours des sources d'eau potable, "
+            "les zones vulnérables aux nitrates, les chenaux réglementés en mer ou les "
+            "eaux intérieures importantes, les zones destinées à la décharge de déchets, "
+            "les zones soumises à limitation du bruit, les zones faisant l'objet de "
+            "permis d'exploration et d'extraction minière, les districts "
+            "hydrographiques, les unités correspondantes utilisées pour les "
+            "rapports et les zones de gestion du littoral.",
+            "Zones sensibles caractérisées en fonction des risques naturels "
+            "(tous les phénomènes atmosphériques, hydrologiques, sismiques, "
+            "volcaniques, ainsi que les feux de friche qui peuvent, en raison "
+            "de leur situation, de leur gravité et de leur fréquence, nuire "
+            "gravement à la société), tels qu'inondations, glissements et "
+            "affaissements de terrain, avalanches, incendies de forêts, "
+            "tremblements de terre et éruptions volcaniques.",
+            "Conditions physiques dans l'atmosphère. Comprend les données "
+            "géographiques fondées sur des mesures, sur des modèles ou sur une "
+            "combinaison des deux, ainsi que les lieux de mesure.",
+            "Conditions physiques des océans (courants, salinité, hauteur des "
+            "vagues, etc.).",
+            "Conditions physiques des mers et des masses d'eau salée divisées "
+            "en régions et en sous-régions à caractéristiques communes.",
+            "Zones présentant des conditions écologiques relativement "
+            "homogènes avec des caractéristiques communes.",
+            "Zones géographiques ayant des caractéristiques écologiques "
+            "particulières — conditions, processus, structures et fonctions "
+            "(de maintien de la vie) — favorables aux organismes qui y vivent. "
+            "Sont incluses les zones terrestres et aquatiques qui se distinguent "
+            "par leurs caractéristiques géographiques, abiotiques ou biotiques, "
+            "qu'elles soient naturelles ou semi-naturelles.",
+            "Répartition géographique de l'occurrence des espèces animales et "
+            "végétales regroupées par grille, région, unité administrative ou "
+            "autre unité analytique.",
+            "Sources d'énergie comprenant les hydrocarbures, l'énergie "
+            "hydraulique, la bioénergie, l'énergie solaire, l'énergie "
+            "éolienne, etc., le cas échéant accompagnées d'informations "
+            "relatives à la profondeur/la hauteur de la source.",
+            "Ressources minérales comprenant les minerais métalliques, les "
+            "minéraux industriels, etc., le cas échéant accompagnées "
+            "d'informations relatives à la profondeur/la hauteur de la ressource.",
+            "Systèmes de référencement unique des informations géographiques "
+            "dans l'espace sous forme d'une série de coordonnées (x, y, z) "
+            "et/ou la latitude et la longitude et l'altitude, en se fondant "
+            "sur un point géodésique horizontal et vertical.",
+            "Grille multi-résolution harmonisée avec un point d'origine commun "
+            "et une localisation ainsi qu'une taille des cellules harmonisées.",
+            "Noms de zones, de régions, de localités, de grandes villes, de "
+            "banlieues, de villes moyennes ou d'implantations, ou tout autre "
+            "élément géographique ou topographique d'intérêt public ou historique.",
+            "Unités d'administration séparées par des limites administratives "
+            "et délimitant les zones dans lesquelles les États membres "
+            "détiennent et/ou exercent leurs compétences, aux fins de "
+            "l'administration locale, régionale et nationale.",
+            "Localisation des propriétés fondée sur les identifiants des "
+            "adresses, habituellement le nom de la rue, le numéro de la "
+            "maison et le code postal.",
             "Zones définies par les registres cadastraux ou équivalents.",
-            "Réseaux routier, ferroviaire, aérien et navigable ainsi que les infrastructures associées. Sont également incluses les correspondances entre les différents réseaux, ainsi que le réseau transeuropéen de transport tel que défini dans la décision no 1692/96/CE du Parlement européen et du Conseil du 23 juillet 1996 sur les orientations communautaires pour le développement du réseau transeuropéen de transport [1] et les révisions futures de cette décision.",
-            "Éléments hydrographiques, y compris les zones maritimes ainsi que toutes les autres masses d'eau et les éléments qui y sont liés, y compris les bassins et sous-bassins hydrographiques. Conformes, le cas échéant, aux définitions établies par la directive 2000/60/CE du Parlement européen et du Conseil du 23 octobre 2000 établissant un cadre pour une politique communautaire dans le domaine de l'eau [2] et sous forme de réseaux.",
-            "Zone désignée ou gérée dans un cadre législatif international, communautaire ou national en vue d'atteindre des objectifs spécifiques de conservation.",
-            "Conditions météorologiques et leur mesure: précipitations, température, évapotranspiration, vitesse et direction du vent.",
+            "Réseaux routier, ferroviaire, aérien et navigable ainsi que "
+            "les infrastructures associées. Sont également incluses les "
+            "correspondances entre les différents réseaux, ainsi que le "
+            "réseau transeuropéen de transport tel que défini dans la "
+            "décision no 1692/96/CE du Parlement européen et du Conseil "
+            "du 23 juillet 1996 sur les orientations communautaires pour "
+            "le développement du réseau transeuropéen de transport [1] "
+            "et les révisions futures de cette décision.",
+            "Éléments hydrographiques, y compris les zones maritimes ainsi "
+            "que toutes les autres masses d'eau et les éléments qui y sont "
+            "liés, y compris les bassins et sous-bassins hydrographiques. "
+            "Conformes, le cas échéant, aux définitions établies par la "
+            "directive 2000/60/CE du Parlement européen et du Conseil "
+            "du 23 octobre 2000 établissant un cadre pour une politique "
+            "communautaire dans le domaine de l'eau [2] et sous forme de réseaux.",
+            "Zone désignée ou gérée dans un cadre législatif international, "
+            "communautaire ou national en vue d'atteindre des objectifs "
+            "spécifiques de conservation.",
+            "Conditions météorologiques et leur mesure: précipitations, "
+            "température, évapotranspiration, vitesse et direction du vent.",
         ]
 
         self.treeWidget.clear()
@@ -805,6 +965,9 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                                 tree.setItemWidget(item_abstract, 3, value_abstract)
 
     def update_meta(self):
+        """
+        update metadata
+        """
         if self.treeWidget.topLevelItemCount() == 0:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
@@ -812,6 +975,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             msg.setWindowTitle("Erreur!!")
             msg.exec_()
         else:
+            dict_inspire = None
             parent = self.treeWidget.invisibleRootItem()
             project = QgsProject.instance()
             for layer in project.mapLayers().values():
@@ -841,7 +1005,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
     def get_new_tree_val(self, root, parent_text, metadata, layer_schema):
         """_summary_
 
-        Cette fonction permet de récupérer les nouvelles métadonnées saisies par l'utilisateur dans le plugin, et les insérer dans la fiche de métadonnées.
+        Cette fonction permet de récupérer les nouvelles métadonnées saisies par
+        l'utilisateur dans le plugin, et les insérer dans la fiche de métadonnées.
 
         Args:
             root (treeWidget): objet qui représente la couche.
@@ -974,9 +1139,15 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                                 "request": "GetCapabilities",
                                 "service": "WMS",
                             }
-                            response_wms = requests.get(link_wms.url, params=params_wms)
-                            response_kml = requests.get(link_kml.url)
-                            response_geojson = requests.get(link_kml.url)
+                            response_wms = requests.get(
+                                link_wms.url, params=params_wms, timeout=HTTP_TIMEOUT
+                            )
+                            response_kml = requests.get(
+                                link_kml.url, timeout=HTTP_TIMEOUT
+                            )
+                            response_geojson = requests.get(
+                                link_kml.url, timeout=HTTP_TIMEOUT
+                            )
                             if response_kml.status_code == 200:
                                 list_links.append(link_kml)
                             if response_geojson.status_code == 200:
@@ -986,13 +1157,28 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             metadata.setLinks(list_links)
                         else:
                             metadata.setLinks(list_links)
-                update_requete = f'UPDATE sit_hydre.gest_bdd_rel_objets_thematique SET metadonnees = \'{{"licences": {json.dumps(licence)},"categories": {json.dumps(categories)}, "mots_clefs": {json.dumps(mots_clefs)}, "themes_inspire": {json.dumps(themes_inspire)}}}\' WHERE objet_id = \'{id_objet}\' AND niveau = 1'
+                update_requete = (
+                    f"UPDATE sit_hydre.gest_bdd_rel_objets_thematique "
+                    f'SET metadonnees = \'{{"licences": {json.dumps(licence)}, '
+                    f'"categories": {json.dumps(categories)}, '
+                    f'"mots_clefs": {json.dumps(mots_clefs)}, '
+                    f'"themes_inspire": {json.dumps(themes_inspire)}}}\' '
+                    f"WHERE objet_id = '{id_objet}' AND niveau = 1"
+                )
                 if description is not None:
                     description = description.replace("'", "''")
-                    update_requete2 = f"UPDATE sit_hydre.gest_bdd_rel_objets_thematique SET metadonnees_commentaire = '{description}' WHERE objet_id = '{id_objet}' AND niveau = 1"
+                    update_requete2 = (
+                        f"UPDATE sit_hydre.gest_bdd_rel_objets_thematique "
+                        f"SET metadonnees_commentaire = '{description}' "
+                        f"WHERE objet_id = '{id_objet}' AND niveau = 1"
+                    )
                     cur.execute(update_requete2)
                 if title is not None:
-                    update_title_requete = f"UPDATE sit_hydre.gest_bdd_rel_objets_thematique SET metadonnees_titre = '{title}' WHERE objet_id = '{id_objet}' AND niveau = 1"
+                    update_title_requete = (
+                        f"UPDATE sit_hydre.gest_bdd_rel_objets_thematique "
+                        f"SET metadonnees_titre = '{title}' "
+                        f"WHERE objet_id = '{id_objet}' AND niveau = 1"
+                    )
                     cur.execute(update_title_requete)
                 cur.execute(update_requete)
                 connexion.commit()
@@ -1017,11 +1203,14 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                     if child.text(2) == THEMES_INSPIRE:
                         value = widget.checkedItems()
                         return value
+        return None
 
     def dict_tree_INSPIRE_val(self):
         """_summary_
 
-        Cette fonction  permet de générer un dictionnaire contenant les valeurs des métadonnées INSPIRE afin de ne pas perdre cette information qui n'est pas implémentée dans Qgis.
+        Cette fonction  permet de générer un dictionnaire contenant les valeurs des
+        métadonnées INSPIRE afin de ne pas perdre cette information qui n'est pas
+        implémentée dans Qgis.
 
         """
         inspire_dict = {}
@@ -1036,7 +1225,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
     def set_tree(self):
         """_summary_
 
-        Cette fonction remplit l'arbre pour chaque couche avec les informations existantes en utilisant la fonction SetTreeItems.
+        Cette fonction remplit l'arbre pour chaque couche avec les informations
+        existantes en utilisant la fonction SetTreeItems.
 
         """
         parent = self.treeWidget.invisibleRootItem()
@@ -1051,10 +1241,12 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
     def set_tree_INSPIRE_new_val(self, inspire_dict):
         """_summary_
 
-        Cette fonction remplie la partie des valeurs INSPIRE par les valeurs INSPIRE saisies par l'utilisateur auparavant.
+        Cette fonction remplie la partie des valeurs INSPIRE par les
+        valeurs INSPIRE saisies par l'utilisateur auparavant.
 
         Args:
-            inspire_dict (dict): dictionnaire des valeurs INSPIRE qui ont été saisies par l'utilisateur.
+            inspire_dict (dict): dictionnaire des valeurs INSPIRE qui
+            ont été saisies par l'utilisateur.
         """
         root = self.treeWidget.invisibleRootItem()
         for i in range(root.childCount()):
@@ -1066,6 +1258,9 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                     widget.setCheckedItems(inspire_dict[parent.text(1)])
 
     def get_INSPIRE_from_db(self, metadata):
+        """
+        get inspire themes from db
+        """
         INSPIRE = None
         tab_meta = self.get_metadata_tab()
         for obj in tab_meta:
@@ -1077,7 +1272,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
     def set_tree_items(self, root, parent_text, metadata):
         """_summary_
 
-        Fonction qui remplie les champs vides dans l'arbre par les données correspondantes depuis la fiche de métadonnées.
+        Fonction qui remplie les champs vides dans l'arbre par les
+        données correspondantes depuis la fiche de métadonnées.
 
         Args:
             root (treeWidget): objet qui représente la couche.
@@ -1136,7 +1332,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
     def tree_layers_color(self):
         """_summary_
 
-        Fonction qui met en place les couleurs des champs de métadonnées dans l'arbre en fonction de ce qui est remplis ou pas.
+        Fonction qui met en place les couleurs des champs de métadonnées
+        dans l'arbre en fonction de ce qui est remplis ou pas.
 
         """
         root = self.treeWidget.invisibleRootItem()
@@ -1162,7 +1359,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
     def get_tree_checkbox_status(self):
         """_summary_
 
-        Fonction permet de récuperer la valeur pour le checkbox Geonetwork si ca a été coché ou non.
+        Fonction permet de récuperer la valeur pour le checkbox
+        Geonetwork si ca a été coché ou non.
 
         """
         checkbox_status = {}
@@ -1207,7 +1405,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
     def check_connexion_gn(self):
         """_summary_
 
-        Fonction qui vérifie la connexion vers le geonetwork et envoie un message en fonction de la réponse.
+        Fonction qui vérifie la connexion vers le geonetwork et envoie
+        un message en fonction de la réponse.
 
         """
         username = self.get_auth_gn()[0]
@@ -1244,7 +1443,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
     def populate_tab_gn(self):
         """_summary_
 
-        Fonction qui va gérérer l'affichage des fiches qui sont à envoyer au geonetwork dans le tableau de la fenetre geonetwork.
+        Fonction qui va gérérer l'affichage des fiches qui sont à envoyer
+        au geonetwork dans le tableau de la fenetre geonetwork.
 
         """
         connexion = self.connexion_postgresql()[1]
@@ -1255,7 +1455,9 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             )
             + "/srv/fre/catalog.search#/metadata/"
         )
-        self.model = QStandardItemModel(0, 2)
+        self.model = QStandardItemModel(
+            0, 2
+        )  # pylint: disable=attribute-defined-outside-init
         self.model.setHorizontalHeaderLabels(
             ["Couches", "Lien vers les fiches métadonnées dans Geonetwork"]
         )
@@ -1280,7 +1482,12 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                     )  # Stocke l'URL dans les données utilisateur
                     self.model.appendRow([item1, item2])
                     meta_lien = catalog_gn + meta_id
-                    update_meta_link = f"UPDATE sit_hydre.gest_bdd_rel_objets_thematique SET metadonnees_lien = '{meta_lien}', metadonnees_titre = '{layer_name}' WHERE metadonnees_id = '{meta_id}'"
+                    update_meta_link = (
+                        "UPDATE sit_hydre.gest_bdd_rel_objets_thematique "
+                        f"SET metadonnees_lien = '{meta_lien}', "
+                        f"metadonnees_titre = '{layer_name}' "
+                        f"WHERE metadonnees_id = '{meta_id}'"
+                    )
                     cur.execute(update_meta_link)
                     connexion.commit()
         cur.close()
@@ -1292,7 +1499,11 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
     def on_table_gn_double_click(self, index):
         """_summary_
 
-        Fonction qui est appelé lorsqu'on clique deux fois sur une cellule de la table des liens geonetwork. Son rôle est de récupérer l'URL stockée dans les données utilisateur de la cellule correspondante, puis d'ouvrir cette URL dans le navigateur par défaut
+        Fonction qui est appelé lorsqu'on clique deux fois sur une
+        cellule de la table des liens geonetwork. Son rôle est de
+        récupérer l'URL stockée dans les données utilisateur de la
+        cellule correspondante, puis d'ouvrir cette URL dans le
+        navigateur par défaut
 
         Args:
             index (objet): représente l'index de la cellule double-cliquée.
@@ -1304,7 +1515,10 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             QDesktopServices.openUrl(QUrl(url))
 
     def get_layer_type(self, layer):
-        # Déterminer le type de la couche
+        """
+        Déterminer le type de la couche
+        """
+        layer_type = "unknown"
         if isinstance(layer, QgsMapLayer):
             if layer.type() == QgsMapLayerType.VectorLayer:
                 if layer.geometryType() == QgsWkbTypes.NullGeometry:
@@ -1316,11 +1530,12 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                 or layer.type() == QgsMapLayerType.TileLayer
             ):
                 layer_type = "grid"
-            else:
-                layer_type = "unknown"
         return layer_type
 
     def get_layer_denominateur(self, layer):
+        """
+        get dominators of registered map scales
+        """
         layer_extent = layer.extent()
         layer_scale = max(layer_extent.width(), layer_extent.height())
         arrondis = [
@@ -1341,7 +1556,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
     def add_INSPIRE_to_xml(self):
         """_summary_
 
-        Fonction qui permet de créer le fichier .zip contenant toutes les information d'une fiche de métadonnées à l'aide de la fonction createZip.
+        Fonction qui permet de créer le fichier .zip contenant toutes les
+        information d'une fiche de métadonnées à l'aide de la fonction createZip.
         Mais aussi permet d'ajouter les valeurs INSPIRE dans la partie xml de ce fichier.
 
         """
@@ -1418,7 +1634,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         """
         self.progressBar.setRange(0, 100)
         self.progressBar.setValue(0)
-        if self.check_tree_title() == True:
+        if self.check_tree_title():
             self.launch_meta_post()
             self.populate_tab_gn()
             self.progressBar.setValue(100)
@@ -1426,7 +1642,10 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
             msg.setText(
-                "Vous n'avez pas saisie un titre pour la couche à envoyer! \n- Retournez dans ''Gestion de métadonnées'' et ajouter un titre à l'endroit ou il n'y en a pas pour la couche en question. \n- Ensuite sauvegarder les modifications."
+                "Vous n'avez pas saisie un titre pour la couche à envoyer! \n"
+                "- Retournez dans ''Gestion de métadonnées'' et ajouter un titre "
+                "à l'endroit ou il n'y en a pas pour la couche en question. \n"
+                "- Ensuite sauvegarder les modifications."
             )
             msg.setWindowTitle("Erreur!!")
             msg.exec_()

@@ -31,6 +31,6 @@ def classFactory(iface):
     :type iface: QgsInterface
     """
     #
-    from .Meta_GAM import MetaGAM
+    from .Meta_GAM import MetaGAM  # pylint: disable=import-outside-toplevel
 
     return MetaGAM(iface)

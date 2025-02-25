@@ -24,15 +24,13 @@
 
 import os
 import shutil
-import xml.dom.minidom
-import xml.etree.ElementTree as ET
 import zipfile
 from datetime import datetime
 from xml.dom import minidom
-from xml.etree import ElementTree
+import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import Element, SubElement
-
 import lxml.etree as lxml
+
 from PyQt5.QtCore import QSize
 from PyQt5.QtGui import QImage, QPainter, QColor
 from qgis.core import (
@@ -147,7 +145,8 @@ def transform_qmd_to_xml(layer_name):
 def add_thumbnail(uuid, layer_name):
     """_summary_
 
-    Fonction qui  créer une image de taille 800x800 pixels de l'étendu spatiale des données en question avec un arrière-plan blanc.
+    Fonction qui  créer une image de taille 800x800 pixels de l'étendu
+    spatiale des données en question avec un arrière-plan blanc.
 
     Args:
         uuid (str): code unique identifiant une fiche de metadata
@@ -242,7 +241,7 @@ def create_info_xml(uuid, thumb_filename):
         attrib={"name": os.path.basename(thumb_filename), "changeDate": d},
     )
     add_sub_element(root, "private")
-    xmlstring = ElementTree.tostring(root, encoding="UTF-8", method="xml").decode()
+    xmlstring = ET.tostring(root, encoding="UTF-8", method="xml").decode()
     dom = minidom.parseString(xmlstring)
     return dom.toprettyxml(indent="  ")
 
@@ -252,40 +251,45 @@ def create_zip(
 ):
     """_summary_
 
-    Cette fonction permet de créer le fichier zip contenant les fichiers xml et images sous un format lisible par geonetwork.
+    Cette fonction permet de créer le fichier zip contenant les fichiers xml et
+    images sous un format lisible par geonetwork.
 
     Args:
         layer_name (str): nom de la couche.
         uuid (str): code unique identifiant une fiche de metadata.
-        inspire_keywords (str): une liste de chaînes de caractères représentant les mots-clés INSPIRE associés à la couche.
+        inspire_keywords (str): une liste de chaînes de caractères représentant
+                                les mots-clés INSPIRE associés à la couche.
     """
     thumb_filename = temp_file + "/" + uuid + ".png"
     zip_filename = temp_file + "/" + uuid + ".zip"
     add_thumbnail(uuid, layer_name)
-    z = zipfile.ZipFile(zip_filename, "w")
-    meta_xml = transform_qmd_to_xml(layer_name)
-    if inspire_keywords:
-        meta_xml = insert_inspire_xml(meta_xml, inspire_keywords)
-    meta_xml = insert_layer_type(meta_xml, layer_type)
-    meta_xml = insert_layer_denominateur(meta_xml, layer_denominateur)
-    meta_xml = update_file_identifier(meta_xml, uuid)
-    meta_xml = insert_contact_xml(meta_xml)
-    if date_publication is not None:
-        meta_xml = insert_date_publication(meta_xml, date_publication)
-    z.writestr(os.path.join(uuid, os.path.join("metadata", "metadata.xml")), meta_xml)
-    z.write(
-        thumb_filename, os.path.join(uuid, "public", os.path.basename(thumb_filename))
-    )
-    z.writestr(os.path.join(uuid, os.path.join("private", "")), "")
-    info = create_info_xml(uuid, thumb_filename)
-    z.writestr(os.path.join(uuid, "info.xml"), info)
-    z.close()
+    with zipfile.ZipFile(zip_filename, "w") as z:
+        meta_xml = transform_qmd_to_xml(layer_name)
+        if inspire_keywords:
+            meta_xml = insert_inspire_xml(meta_xml, inspire_keywords)
+        meta_xml = insert_layer_type(meta_xml, layer_type)
+        meta_xml = insert_layer_denominateur(meta_xml, layer_denominateur)
+        meta_xml = update_file_identifier(meta_xml, uuid)
+        meta_xml = insert_contact_xml(meta_xml)
+        if date_publication is not None:
+            meta_xml = insert_date_publication(meta_xml, date_publication)
+        z.writestr(
+            os.path.join(uuid, os.path.join("metadata", "metadata.xml")), meta_xml
+        )
+        z.write(
+            thumb_filename,
+            os.path.join(uuid, "public", os.path.basename(thumb_filename)),
+        )
+        z.writestr(os.path.join(uuid, os.path.join("private", "")), "")
+        info = create_info_xml(uuid, thumb_filename)
+        z.writestr(os.path.join(uuid, "info.xml"), info)
 
 
 def clean_temp():
     """_summary_
 
-    Cette fonction permet de supprimer tous les fichiers et dossiers du répertoire temporaire (variable temp_file) sauf les fichiers zip et le fichier cookie.txt.
+    Cette fonction permet de supprimer tous les fichiers et dossiers du répertoire
+    temporaire (variable temp_file) sauf les fichiers zip et le fichier cookie.txt.
     """
     for filename in os.listdir(temp_file):
         if filename.endswith(".zip") or filename == "cookie.txt":
@@ -295,8 +299,8 @@ def clean_temp():
             os.unlink(file_path)
         elif os.path.isdir(file_path):
             shutil.rmtree(file_path)
-            """         except Exception as e:
-            print('Pas possible de supprimer %s. Raison: %s' % (file_path, e)) """
+            # except Exception as e:
+            #     print('Pas possible de supprimer %s. Raison: %s' % (file_path, e))
 
 
 def remove_all_zip_files():
@@ -313,11 +317,14 @@ def remove_all_zip_files():
 def insert_inspire_xml(xml_string, keywords):
     """_summary_
 
-    Cette fonction renvoie une chaîne de caractères représentant le document XML mis à jour avec les mots-clés INSPIRE ajoutés, formatée avec une indentation pour une meilleure lisibilité.
+    Cette fonction renvoie une chaîne de caractères représentant le document XML
+    mis à jour avec les mots-clés INSPIRE ajoutés, formatée avec une indentation
+    pour une meilleure lisibilité.
 
     Args:
         xml_string (str): une chaîne de caractères représentant un document XML contenant des métadonnées.
-        keywords (str): une liste de chaînes de caractères représentant les mots-clés INSPIRE à ajouter aux métadonnées.
+        keywords (str): une liste de chaînes de caractères représentant les mots-clés
+                        INSPIRE à ajouter aux métadonnées.
 
     Returns:
         str : code xml.
@@ -349,13 +356,15 @@ def insert_inspire_xml(xml_string, keywords):
             gco_string.text = keyword
 
         xml_string = ET.tostring(root, encoding="utf-8", method="xml")
-    return xml.dom.minidom.parseString(xml_string).toprettyxml(indent="  ")
+    return minidom.parseString(xml_string).toprettyxml(indent="  ")
 
 
 def insert_layer_type(xml_string, layer_type):
     """_summary_
 
-    Cette fonction renvoie une chaîne de caractères représentant le document XML mis à jour avec le type de la couche, formatée avec une indentation pour une meilleure lisibilité.
+    Cette fonction renvoie une chaîne de caractères représentant le document
+    XML mis à jour avec le type de la couche, formatée avec une indentation
+    pour une meilleure lisibilité.
 
     Args:
         xml_string (str): une chaîne de caractères représentant un document XML contenant des métadonnées.
@@ -391,17 +400,20 @@ def insert_layer_type(xml_string, layer_type):
         md_spatial_representation_type_code.attrib["codeListValue"] = layer_type
 
         xml_string = ET.tostring(root, encoding="utf-8", method="xml")
-    return xml.dom.minidom.parseString(xml_string).toprettyxml(indent="  ")
+    return minidom.parseString(xml_string).toprettyxml(indent="  ")
 
 
 def insert_layer_denominateur(xml_string, layer_denominateur):
     """_summary_
 
-    Cette fonction renvoie une chaîne de caractères représentant le document XML mis à jour avec le layer_denominateur inséré entre les balises appropriées, formaté avec une indentation pour une meilleure lisibilité.
+    Cette fonction renvoie une chaîne de caractères représentant le document XML
+    mis à jour avec le layer_denominateur inséré entre les balises appropriées,
+    formaté avec une indentation pour une meilleure lisibilité.
 
     Args:
         xml_string (str): une chaîne de caractères représentant un document XML contenant des métadonnées.
-        layer_denominateur (str): chaîne de caractères représentant la valeur à insérer dans les balises <gco:Integer></gco:Integer>.
+        layer_denominateur (str): chaîne de caractères représentant la valeur à
+                                  insérer dans les balises <gco:Integer></gco:Integer>.
 
     Returns:
         str : code xml.
@@ -427,7 +439,7 @@ def insert_layer_denominateur(xml_string, layer_denominateur):
 
     xml_string = ET.tostring(root, encoding="utf-8", method="xml")
 
-    return xml.dom.minidom.parseString(xml_string).toprettyxml(indent="  ")
+    return minidom.parseString(xml_string).toprettyxml(indent="  ")
 
 
 def insert_date_publication(xml_string, date_publication):
@@ -451,7 +463,7 @@ def insert_date_publication(xml_string, date_publication):
     ET.register_namespace("gmd", GMD_URL)
     ET.register_namespace("gco", GCO_URL)
 
-    key = "{http://www.isotc211.org/2005/gco}Date"
+    # key = "{http://www.isotc211.org/2005/gco}Date"
     date_elements = root.findall(
         ".//gmd:date/gmd:CI_Date/gmd:date/gco:Date", namespaces
     )
@@ -466,7 +478,8 @@ def insert_date_publication(xml_string, date_publication):
 
 
 def update_file_identifier(xml_string, meta_id):
-    """Cette fonction renvoie une chaîne de caractères représentant le document XML mis à jour l'identifiant de la fiche au lieu de celui de la table.
+    """Cette fonction renvoie une chaîne de caractères représentant le document XML
+    mis à jour l'identifiant de la fiche au lieu de celui de la table.
 
     Args:
         xml_string (str): une chaîne de caractères représentant un document XML contenant des métadonnées.
@@ -494,7 +507,7 @@ def update_file_identifier(xml_string, meta_id):
         file_name_element.text = meta_id + ".png"
 
     updated_xml_string = ET.tostring(tree, encoding="utf-8", method="xml")
-    prettified_xml_string = xml.dom.minidom.parseString(updated_xml_string).toprettyxml(
+    prettified_xml_string = minidom.parseString(updated_xml_string).toprettyxml(
         indent="  "
     )
 
@@ -502,7 +515,8 @@ def update_file_identifier(xml_string, meta_id):
 
 
 def insert_contact_xml(xml_string):
-    """Cette fonction renvoie une chaîne de caractères représentant le document XML mis à jour avec le contact de la métropole.
+    """Cette fonction renvoie une chaîne de caractères représentant le document
+    XML mis à jour avec le contact de la métropole.
 
     Args:
         xml_string (str): une chaîne de caractères représentant un document XML contenant des métadonnées.
@@ -534,4 +548,4 @@ def insert_contact_xml(xml_string):
         descriptive_keywords_parent.insert(index, new_element)
 
     xml_string = ET.tostring(root, encoding="utf-8", method="xml")
-    return xml.dom.minidom.parseString(xml_string).toprettyxml(indent="  ")
+    return minidom.parseString(xml_string).toprettyxml(indent="  ")

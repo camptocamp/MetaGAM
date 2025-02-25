@@ -1,21 +1,34 @@
+"""
+test fonctionnel principal
+"""
 import unittest
-from ..Meta_GAM_Geonetwork import connexion_geonetwork, get_meta_date_gn
 from requests.structures import CaseInsensitiveDict
+from ..Meta_GAM_Geonetwork import connexion_geonetwork, get_meta_date_gn
 
 
 class MyTestClass(unittest.TestCase):
+    """
+    TestCase structure
+    """
+
     def setUp(self):
-        # Initialisation des objets nécessaires pour le test
+        """
+        Initialisation des objets nécessaires pour le test
+        """
         self.user = "TestCICD"
         self.password = "Git12345@"
         self.uuid = "ed84693d-1444-4230-ad25-b8e6f9b71c7b"
 
     def tearDown(self):
-        # Nettoyage après le test si nécessaire
-        pass
+        """
+        Nettoyage après le test si nécessaire
+        """
+        pass  # pylint: disable=unnecessary-pass
 
     def test_connexionGeonetwork(self):
-        # Appel de la fonction à tester
+        """
+        Appel de la fonction à tester
+        """
         result = connexion_geonetwork(self.user, self.password)
 
         # Assertions pour vérifier le comportement attendu
@@ -41,7 +54,9 @@ class MyTestClass(unittest.TestCase):
         self.assertIsNone(result[6])  # Vérifie que le septième élément est None
 
     def test_getMetaDateGN(self):
-        # Appel de la fonction à tester
+        """
+        Appel de la fonction à tester
+        """
         date_publication = get_meta_date_gn(self.user, self.password, self.uuid)
 
         self.assertIsNotNone(

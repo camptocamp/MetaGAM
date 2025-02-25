@@ -84,7 +84,9 @@ class MetaGAMDialogTest(unittest.TestCase):
         uuid = "50e3a04d-4744-46a0-8a70-09da72860a3f"
         uuid = url.split("/")[-1]
         test_layer = requests.get(
-            CATALOG + "/srv/api/records/" + uuid, headers={"accept": "application/json"}
+            CATALOG + "/srv/api/records/" + uuid,
+            headers={"accept": "application/json"},
+            timeout=30,
         )
         assert test_layer.status_code == 200
         ss = requests.Session()
@@ -92,6 +94,7 @@ class MetaGAMDialogTest(unittest.TestCase):
             CATALOG + "/srv/api/me",
             headers={"accept": "application/json"},
             auth=("admin", "admin"),
+            timeout=30,
         )
         assert me.json()["profile"] == "Administrator"
         xsrf = ss.cookies.get("XSRF-TOKEN")
@@ -99,7 +102,9 @@ class MetaGAMDialogTest(unittest.TestCase):
             CATALOG + "/srv/api/records/" + uuid,
             auth=("admin", "admin"),
             headers={"X-XSRF-TOKEN": xsrf},
+            timeout=30,
         )
+        assert deletion.status_code == 204
         ss.close()
 
     def test_dialog_cancel(self):

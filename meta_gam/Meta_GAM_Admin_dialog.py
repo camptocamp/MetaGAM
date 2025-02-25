@@ -35,8 +35,12 @@ FORM_CLASS, _ = uic.loadUiType(
 
 
 class MetaGamAdminDialog(QtWidgets.QDialog, FORM_CLASS):
+    """
+    main widget for plugin admin settings
+    """
+
     def __init__(self, parent=None):
-        super(MetaGamAdminDialog, self).__init__(parent)
+        super().__init__(parent)
         self.setupUi(self)
         self.frame_2.setVisible(False)
 
@@ -54,6 +58,9 @@ class MetaGamAdminDialog(QtWidgets.QDialog, FORM_CLASS):
         self.pushButton.clicked.connect(self.update_progressbar)
 
     def connexion_postgis(self):
+        """
+        try to connect to configured postgis DB
+        """
         res = False
         utilisateur = self.lineEdit.text()
         password = self.mLineEdit.text()
@@ -80,19 +87,24 @@ class MetaGamAdminDialog(QtWidgets.QDialog, FORM_CLASS):
         if is_admin:
             res = True
             return res
-        else:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText("Vous n'êtes pas admin sur la base de données")
-            msg.setWindowTitle("Erreur!!")
-            msg.exec_()
-            return res
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Critical)
+        msg.setText("Vous n'êtes pas admin sur la base de données")
+        msg.setWindowTitle("Erreur!!")
+        msg.exec_()
+        return res
 
     def check_admin(self):
+        """
+        admin rights are granted if the DB connection is successful
+        """
         if self.connexion_postgis():
             self.frame_2.setVisible(True)
 
     def get_project_groups(self):
+        """
+        get project groups
+        """
         # Récupérer le projet courant
         project = QgsProject.instance()
         # Récupérer la liste de tous les groupes de couches du projet
@@ -106,24 +118,35 @@ class MetaGamAdminDialog(QtWidgets.QDialog, FORM_CLASS):
         return root_groups
 
     def update_groups(self):
-        # Ajouter les noms de chaque groupe racine à la QComboBox
+        """
+        Ajouter les noms de chaque groupe racine à la QComboBox
+        """
         groups = self.get_project_groups()
         self.groupsList.clear()  # Effacer les éléments précédents
         for group in groups:
             self.groupsList.addItem(group.name())
 
     def default_file(self, state):
-        # Afficher ou masquer le texte dans QgsFileWidget() selon l'état de coche de QCheckBox()
+        """
+        Afficher ou masquer le texte dans QgsFileWidget() selon l'état de coche de QCheckBox()
+        """
         if state == 2:  # État de coche activé
-            self.file_project_widget.setFilePath("S:\QGIS\gam\socle_data_metiers.qgs")
+            self.file_project_widget.setFilePath(
+                os.path.join("S:", "QGIS", "gam", "socle_data_metiers.qgs")
+            )
         else:  # État de coche désactivé
             self.file_project_widget.setFilePath("")
 
     def filter_ggs_files(self):
+        """
+        show only "*.qgs" files
+        """
         self.file_project_widget.setFilter("*.qgs")
 
     def copy_layers_to_dest(self, group_name, projet_destination, projet_source):
-        # Obtenez la liste des groupes dans le projet source
+        """
+        Obtenez la liste des groupes dans le projet source
+        """
         source_group = projet_source.layerTreeRoot().findGroup(group_name)
         dest_group = projet_destination.layerTreeRoot().findGroup(group_name)
         for layer in source_group.findLayers():
@@ -132,6 +155,9 @@ class MetaGamAdminDialog(QtWidgets.QDialog, FORM_CLASS):
             dest_group.addChildNode(QgsLayerTreeLayer(layer.layer()))
 
     def check_group_exists(self):
+        """
+        vérification si le groupe existe
+        """
         # Ouvre le projet source courant
         destination_project_path = self.file_project_widget.filePath()
         source_project = QgsProject.instance()
@@ -160,6 +186,9 @@ class MetaGamAdminDialog(QtWidgets.QDialog, FORM_CLASS):
         del source_project
 
     def update_progressbar(self):
+        """
+        faire évoluer la barre de progrès de 0 à 100%
+        """
         self.progressBar.setRange(0, 100)
         self.progressBar.setValue(0)
         if self.file_project_widget.filePath() == "":
@@ -173,4 +202,7 @@ class MetaGamAdminDialog(QtWidgets.QDialog, FORM_CLASS):
         self.progressBar.setValue(100)
 
     def close_dialog(self):
+        """
+        fermer la fenetre admin
+        """
         self.close()
