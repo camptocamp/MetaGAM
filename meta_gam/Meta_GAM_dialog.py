@@ -89,7 +89,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         self.setupUi(self)
         self.treeWidget = self.findChild(QTreeWidget, "treeWidget")
         self.tableGN = self.findChild(QTableView, "tableGN")
-        self.tableGN.doubleClicked.connect(self.onTableGNDoubleClick)
+        self.tableGN.doubleClicked.connect(self.on_table_gn_double_click)
         self.layers_niveau = (
             {}
         )  # Dictionnaire pour stocker le nom de la couche et son niveau par rapport à la thématique
@@ -124,18 +124,18 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         self.tree_checkbox_status = None
         self.labelGeo.setOpenExternalLinks(True)
         self.pbAutoMeta.clicked.connect(self.auto_fill_meta)
-        self.pb_meta_cancel.clicked.connect(self.PluginClose)
+        self.pb_meta_cancel.clicked.connect(self.close_plugin)
         self.pb_meta_apply.clicked.connect(self.get_tree_checkbox_status)
-        self.pb_meta_apply.clicked.connect(self.UpdateMeta)
-        self.pb_meta_apply.clicked.connect(self.treeLayersColor)
+        self.pb_meta_apply.clicked.connect(self.update_meta)
+        self.pb_meta_apply.clicked.connect(self.tree_layers_color)
         self.pb_meta_apply.clicked.connect(self.set_tree_checkbox_status)
-        self.pbConnexion.clicked.connect(self.checkConnexionGN)
-        self.pbPost.clicked.connect(self.updateProgressBar)
-        self.pbCancel.clicked.connect(self.PluginClose)
+        self.pbConnexion.clicked.connect(self.check_connexion_gn)
+        self.pbPost.clicked.connect(self.update_progressbar)
+        self.pbCancel.clicked.connect(self.close_plugin)
 
-    def ConnexionPostgresqlPassword(self):
+    def connexion_postgresql_password(self):
 
-        if self.ConnexionPostgresql()[0]:
+        if self.connexion_postgresql()[0]:
             return True
         # Créer une instance de QDialog
         dialog = QDialog()
@@ -160,13 +160,13 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         # Afficher la fenêtre modale et renvoyer la valeur saisie par l'utilisateur
         if dialog.exec_() == QDialog.Accepted:
             self.UserPassword = password_edit.text()
-            if self.ConnexionPostgresql()[0]:
+            if self.connexion_postgresql()[0]:
                 # La connexion a réussi
                 return True
             else:
-                return self.ConnexionPostgresqlPassword()
+                return self.connexion_postgresql_password()
 
-    def ConnexionPostgresql(self):
+    def connexion_postgresql(self):
         try:
             connexion = psycopg2.connect(service="bd_prod", password=self.UserPassword)
             return True, connexion
@@ -174,8 +174,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             QMessageBox.critical(self, "Erreur", str(e), QMessageBox.Ok)
             return False, None
 
-    def getMetadataGestionTab(self):
-        connexion = self.ConnexionPostgresql()[1]
+    def get_metadata_gestion_tab(self):
+        connexion = self.connexion_postgresql()[1]
         cur = connexion.cursor()
         cur.execute("SELECT * FROM sit_hydre.v_liste_nom_schema_objet")
         rows = cur.fetchall()
@@ -185,8 +185,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             json.append(dict(zip(columns, row)))
         return json
 
-    def getMetadataTab(self):
-        connexion = self.ConnexionPostgresql()[1]
+    def get_metadata_tab(self):
+        connexion = self.connexion_postgresql()[1]
         cur = connexion.cursor()
         cur.execute("SELECT * FROM sit_hydre.gest_bdd_rel_objets_thematique")
         rows = cur.fetchall()
@@ -196,8 +196,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             json.append(dict(zip(columns, row)))
         return json
 
-    def getContactTab(self):
-        connexion = self.ConnexionPostgresql()[1]
+    def get_contact_tab(self):
+        connexion = self.connexion_postgresql()[1]
         cur = connexion.cursor()
         cur.execute("SELECT * FROM sit_hydre.gest_bdd_contact_referents")
         rows = cur.fetchall()
@@ -207,8 +207,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             json.append(dict(zip(columns, row)))
         return json
 
-    def getThematiqueTab(self):
-        connexion = self.ConnexionPostgresql()[1]
+    def get_thematique_tab(self):
+        connexion = self.connexion_postgresql()[1]
         cur = connexion.cursor()
         cur.execute("SELECT * FROM sit_hydre.gest_bdd_thematique")
         rows = cur.fetchall()
@@ -218,8 +218,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             json.append(dict(zip(columns, row)))
         return json
 
-    def getContactID(self, id_thematique):
-        connexion = self.ConnexionPostgresql()[1]
+    def get_contact_ID(self, id_thematique):
+        connexion = self.connexion_postgresql()[1]
         cur = connexion.cursor()
         cur.execute(
             "SELECT contact_referent_id FROM sit_hydre.gest_bdd_rel_thematique_contact_referents WHERE thematique_id = %s",
@@ -229,10 +229,10 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         contact_ids = [row[0] for row in rows]
         return contact_ids
 
-    def getMetaID(self, id_objet):
+    def get_meta_ID(self, id_objet):
         # print('id_objet : ' + id_objet)
         if id_objet:
-            connexion = self.ConnexionPostgresql()[1]
+            connexion = self.connexion_postgresql()[1]
             cur = connexion.cursor()
             cur.execute(
                 "SELECT metadonnees_id FROM sit_hydre.gest_bdd_rel_objets_thematique WHERE objet_id = %s",
@@ -250,11 +250,11 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         Cette fonction a pour objectif de remplir automatiquement les métadonnées d'une couche dans QGIS. Tout d'abord, elle récupère une couche de contacts à partir de laquelle elle extrait les informations nécessaires pour remplir la partie "contact" des métadonnées de la couche en question. Ensuite, elle récupère l'emprise spatiale de la couche et remplit cette information dans la fiche de métadonnées. Et c'est pareil pour les autres informations de la fiche metadata.
 
         """
-        if self.ConnexionPostgresqlPassword():
-            tab_gestion = self.getMetadataGestionTab()
-            tab_metadata = self.getMetadataTab()
-            tab_contacts = self.getContactTab()
-            tab_thematique = self.getThematiqueTab()
+        if self.connexion_postgresql_password():
+            tab_gestion = self.get_metadata_gestion_tab()
+            tab_metadata = self.get_metadata_tab()
+            tab_contacts = self.get_contact_tab()
+            tab_thematique = self.get_thematique_tab()
             # On commence à remplir la fiche des metadonnées
             project = QgsProject.instance()
             for (
@@ -303,7 +303,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             description = obj_meta.get("metadonnees_commentaire")
                             id_thematique = obj_meta.get("thematique_id")
                             meta_titre = obj_meta.get("metadonnees_titre")
-                            contact_id = self.getContactID(id_thematique)
+                            contact_id = self.get_contact_ID(id_thematique)
                             for obj_them in tab_thematique:
                                 id_objet_them = obj_them.get("id")
                                 if id_objet_them == id_thematique:
@@ -594,11 +594,11 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         if licence is not None:
                             layer_meta.setLicenses([licence])
                         layer.setMetadata(layer_meta)
-                    self.MetaMessage()
+                    self.meta_message()
                     # self.activateWindow() # pour remettre la page du plugin en premier plan
-                    self.LayersTree()
-                    self.setTree()
-                    self.treeLayersColor()
+                    self.layers_tree()
+                    self.set_tree()
+                    self.tree_layers_color()
                     self.frame_legende.setVisible(True)
                 else:
                     msg = QMessageBox()
@@ -609,7 +609,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                     msg.setWindowTitle("Erreur")
                     msg.exec_()
 
-    def MetaMessage(self):
+    def meta_message(self):
         """_summary_
 
         Fonction qui renvoie aprés l'auto-remplissage des métadonnées.
@@ -621,7 +621,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         msg.setWindowTitle("Information metadata")
         # msg.exec_()
 
-    def MetaQgisValidation(self, layer_name):
+    def meta_qgis_validation(self, layer_name):
         """_summary_
 
         Cette fonction effectue une validation de la métadonnée pour une couche à l'aide de la classe QgsNativeMetadataValidator de QGIS. La méthode (QgsNativeMetadataValidator) retourne une liste de résultats de validation, et la première valeur de cette liste est renvoyée en sortie de fonction.
@@ -635,7 +635,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         validation = validator.validate(meta)
         return validation[0]
 
-    def PluginClose(self):
+    def close_plugin(self):
         """_summary_
 
         Fonction qui ferme le plugin.
@@ -643,7 +643,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         """
         self.close()
 
-    def LayersTree(self):
+    def layers_tree(self):
         """_summary_
 
         Cette fonction serre à structure l'arbre du plugin (le tableau qui affiche toutes les informations sur les métadonnées).
@@ -786,7 +786,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         attribut.addChild(item_licenses)
                         tree.setItemWidget(item_licenses, 3, value_licences)
 
-                        if not self.MetaQgisValidation(layer_name):
+                        if not self.meta_qgis_validation(layer_name):
                             if layer_meta.title() == "":
                                 item_titre = QTreeWidgetItem(attribut)
                                 item_titre.setText(2, str("titre"))
@@ -804,7 +804,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                                 attribut.addChild(item_abstract)
                                 tree.setItemWidget(item_abstract, 3, value_abstract)
 
-    def UpdateMeta(self):
+    def update_meta(self):
         if self.treeWidget.topLevelItemCount() == 0:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
@@ -828,10 +828,10 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             parent, layer_name, layer_meta, layer_schema
                         )
                         layer.setMetadata(layer_meta)
-                        dict_inspire = self.dictTreeInspireVal()
-            self.LayersTree()
-            self.setTree()
-            self.setTreeINSPIRE_NewVal(dict_inspire)
+                        dict_inspire = self.dict_tree_INSPIRE_val()
+            self.layers_tree()
+            self.set_tree()
+            self.set_tree_INSPIRE_new_val(dict_inspire)
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Information)
             msg.setText("Vos fiches sont à jour!")
@@ -849,7 +849,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             metadata (objet Qgis):  un objet qui contient les informations de métadonnées de la couche.
             layer_schema (str) : nom du schema d'une couche.
         """
-        connexion = self.ConnexionPostgresql()[1]
+        connexion = self.connexion_postgresql()[1]
         cur = connexion.cursor()
         themes_inspire = None
         categories = None
@@ -999,7 +999,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         cur.close()
         connexion.close()
 
-    def getTreeInspireVal(self, layer_name):
+    def get_tree_INSPIRE_val(self, layer_name):
         """_summary_
 
         Fonction qui récupere uniquement les nouvelles valeurs concernant les thémes INSPIRE.
@@ -1018,7 +1018,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         value = widget.checkedItems()
                         return value
 
-    def dictTreeInspireVal(self):
+    def dict_tree_INSPIRE_val(self):
         """_summary_
 
         Cette fonction  permet de générer un dictionnaire contenant les valeurs des métadonnées INSPIRE afin de ne pas perdre cette information qui n'est pas implémentée dans Qgis.
@@ -1029,11 +1029,11 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             item = self.treeWidget.topLevelItem(i)
             nom_couche = item.text(1)
             inspire_dict[nom_couche] = []
-            inspire_val = self.getTreeInspireVal(nom_couche)
+            inspire_val = self.get_tree_INSPIRE_val(nom_couche)
             inspire_dict[nom_couche] = inspire_val
         return inspire_dict
 
-    def setTree(self):
+    def set_tree(self):
         """_summary_
 
         Cette fonction remplit l'arbre pour chaque couche avec les informations existantes en utilisant la fonction SetTreeItems.
@@ -1046,9 +1046,9 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             layer_name = layer.name()
             if len(self.layers_niveau) > 0:
                 if self.layers_niveau.get(layer_name) == 1:
-                    self.setTreeItems(parent, layer_name, layer_meta)
+                    self.set_tree_items(parent, layer_name, layer_meta)
 
-    def setTreeINSPIRE_NewVal(self, inspire_dict):
+    def set_tree_INSPIRE_new_val(self, inspire_dict):
         """_summary_
 
         Cette fonction remplie la partie des valeurs INSPIRE par les valeurs INSPIRE saisies par l'utilisateur auparavant.
@@ -1065,16 +1065,16 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                 if child.text(2) == THEMES_INSPIRE:
                     widget.setCheckedItems(inspire_dict[parent.text(1)])
 
-    def getInspireFromBD(self, metadata):
+    def get_INSPIRE_from_db(self, metadata):
         INSPIRE = None
-        tab_meta = self.getMetadataTab()
+        tab_meta = self.get_metadata_tab()
         for obj in tab_meta:
             id_objet = obj.get("objet_id")
             if id_objet == metadata.identifier():
                 INSPIRE = obj.get("metadonnees")["themes_inspire"]
         return INSPIRE
 
-    def setTreeItems(self, root, parent_text, metadata):
+    def set_tree_items(self, root, parent_text, metadata):
         """_summary_
 
         Fonction qui remplie les champs vides dans l'arbre par les données correspondantes depuis la fiche de métadonnées.
@@ -1091,7 +1091,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                     child = parent.child(j)
                     widget = self.treeWidget.itemWidget(child, 3)
                     if child.text(2) == THEMES_INSPIRE:
-                        list_inspire = self.getInspireFromBD(metadata)
+                        list_inspire = self.get_INSPIRE_from_db(metadata)
                         if list_inspire is not None:
                             widget.setCheckedItems(list_inspire)
                     elif child.text(2) == "Mots-clés":
@@ -1116,7 +1116,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         if widget.currentIndex() == 0:
                             child.setForeground(2, QColor(255, 165, 0))
 
-    def checkTreeTitle(self):
+    def check_tree_title(self):
         """_summary_
 
         Fonction qui vérifie que toutes les fiches de métadonnées ont un titre.
@@ -1133,7 +1133,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                     res = False
         return res
 
-    def treeLayersColor(self):
+    def tree_layers_color(self):
         """_summary_
 
         Fonction qui met en place les couleurs des champs de métadonnées dans l'arbre en fonction de ce qui est remplis ou pas.
@@ -1191,7 +1191,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             if i in checkbox_status:
                 checkbox.setChecked(checkbox_status[i])
 
-    def getAuthGN(self):
+    def get_auth_gn(self):
         """_summary_
 
         Fonction qui récupere les identifiants saisies par l'utilisateur.
@@ -1204,14 +1204,14 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         motdepass = self.lePassword.text()
         return (username, motdepass)
 
-    def checkConnexionGN(self):
+    def check_connexion_gn(self):
         """_summary_
 
         Fonction qui vérifie la connexion vers le geonetwork et envoie un message en fonction de la réponse.
 
         """
-        username = self.getAuthGN()[0]
-        motdepass = self.getAuthGN()[1]
+        username = self.get_auth_gn()[0]
+        motdepass = self.get_auth_gn()[1]
         if username == "" and motdepass == "":
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
@@ -1241,13 +1241,13 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                 msg.setWindowTitle("Erreur!!")
                 msg.exec_()
 
-    def populateTabGN(self):
+    def populate_tab_gn(self):
         """_summary_
 
         Fonction qui va gérérer l'affichage des fiches qui sont à envoyer au geonetwork dans le tableau de la fenetre geonetwork.
 
         """
-        connexion = self.ConnexionPostgresql()[1]
+        connexion = self.connexion_postgresql()[1]
         cur = connexion.cursor()
         catalog_gn = (
             os.environ.get(
@@ -1265,7 +1265,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             layer_meta = layer.metadata()
             uuid = layer_meta.identifier()
             # print('uuid : %',uuid)
-            meta_id = self.getMetaID(uuid)
+            meta_id = self.get_meta_ID(uuid)
             if self.tree_checkbox_status is not None:
                 if self.tree_checkbox_status.get(i):
                     meta_id = meta_id[0]
@@ -1289,10 +1289,10 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         self.tableGN.setColumnWidth(1, 450)
         self.tableGN.setColumnWidth(0, 250)
 
-    def onTableGNDoubleClick(self, index):
+    def on_table_gn_double_click(self, index):
         """_summary_
 
-        Fonction qui est appelé lorsqu'on clique deux fois sur une cellule de la table des liens geonetwork.Son rôle est de récupérer l'URL stockée dans les données utilisateur de la cellule correspondante, puis d'ouvrir cette URL dans le navigateur par défaut
+        Fonction qui est appelé lorsqu'on clique deux fois sur une cellule de la table des liens geonetwork. Son rôle est de récupérer l'URL stockée dans les données utilisateur de la cellule correspondante, puis d'ouvrir cette URL dans le navigateur par défaut
 
         Args:
             index (objet): représente l'index de la cellule double-cliquée.
@@ -1303,7 +1303,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             url = self.model.item(row, col).data(Qt.UserRole)
             QDesktopServices.openUrl(QUrl(url))
 
-    def getLayerType(self, layer):
+    def get_layer_type(self, layer):
         # Déterminer le type de la couche
         if isinstance(layer, QgsMapLayer):
             if layer.type() == QgsMapLayerType.VectorLayer:
@@ -1320,7 +1320,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                 layer_type = "unknown"
         return layer_type
 
-    def getLayerDenominateur(self, layer):
+    def get_layer_denominateur(self, layer):
         layer_extent = layer.extent()
         layer_scale = max(layer_extent.width(), layer_extent.height())
         arrondis = [
@@ -1338,7 +1338,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         echelle_arrondie = min(arrondis, key=lambda x: abs(x - layer_scale))
         return echelle_arrondie
 
-    def addInspire_to_xml(self):
+    def add_INSPIRE_to_xml(self):
         """_summary_
 
         Fonction qui permet de créer le fichier .zip contenant toutes les information d'une fiche de métadonnées à l'aide de la fonction createZip.
@@ -1346,19 +1346,19 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
 
         """
         project = QgsProject.instance()
-        username = self.getAuthGN()[0]
-        motdepass = self.getAuthGN()[1]
+        username = self.get_auth_gn()[0]
+        motdepass = self.get_auth_gn()[1]
         for i, layer in enumerate(project.mapLayers().values()):
             layer_name = layer.name()
             layer_meta = layer.metadata()
             uuid = layer_meta.identifier()
-            meta_id = self.getMetaID(uuid)
-            inspire_keywords = self.getTreeInspireVal(layer_name)
+            meta_id = self.get_meta_ID(uuid)
+            inspire_keywords = self.get_tree_INSPIRE_val(layer_name)
             self.get_tree_checkbox_status()
             if meta_id is not None:
                 if self.tree_checkbox_status is not None:
-                    layer_type = self.getLayerType(layer)
-                    layer_dominateur = self.getLayerDenominateur(layer)
+                    layer_type = self.get_layer_type(layer)
+                    layer_dominateur = self.get_layer_denominateur(layer)
                     if self.tree_checkbox_status.get(i):
                         meta_id = meta_id[0]
                         date_publication = get_meta_date_gn(
@@ -1397,20 +1397,20 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                                 envoi sur geonetwork : OK """
                         )
 
-    def launch_MetaPost(self):
+    def launch_meta_post(self):
         """_summary_
 
         Gestion du répertoire temporaire temp et envoie des fiches vers le geonetwork.
 
         """
         remove_all_zip_files()
-        self.addInspire_to_xml()
+        self.add_INSPIRE_to_xml()
         clean_temp()
-        connexion_gn = self.getAuthGN()
+        connexion_gn = self.get_auth_gn()
         post_meta_gn(connexion_gn[0], connexion_gn[1])
         remove_all_zip_files()
 
-    def updateProgressBar(self):
+    def update_progressbar(self):
         """_summary_
 
         Gestion des messages d'erreur. Et mise à jour de la barre d'évolution.
@@ -1418,9 +1418,9 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         """
         self.progressBar.setRange(0, 100)
         self.progressBar.setValue(0)
-        if self.checkTreeTitle() == True:
-            self.launch_MetaPost()
-            self.populateTabGN()
+        if self.check_tree_title() == True:
+            self.launch_meta_post()
+            self.populate_tab_gn()
             self.progressBar.setValue(100)
         else:
             msg = QMessageBox()

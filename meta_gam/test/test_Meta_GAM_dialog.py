@@ -53,7 +53,7 @@ class MetaGAMDialogTest(unittest.TestCase):
         assert root.childCount() == 0
         self.dialog.pbAutoMeta.click()
         assert root.childCount() == 1
-        self.assertTrue(self.dialog.ConnexionPostgresql()[0])
+        self.assertTrue(self.dialog.connexion_postgresql()[0])
 
     def test_publish(self):
         """Test we can publish the data."""
@@ -70,7 +70,7 @@ class MetaGAMDialogTest(unittest.TestCase):
         assert root.childCount() == 0
         self.dialog.pbAutoMeta.click()
         assert root.childCount() == 2
-        assert self.dialog.checkTreeTitle()
+        assert self.dialog.check_tree_title()
         self.dialog.leUsername.setText("admin")
         self.dialog.lePassword.setText("admin")
         assert self.dialog.pbPost.isHidden()

@@ -41,19 +41,19 @@ class MetaGamAdminDialog(QtWidgets.QDialog, FORM_CLASS):
         self.frame_2.setVisible(False)
 
         self.file_project_widget = self.mQgsFileWidget
-        self.filterQgsFiles()
-        self.updateGroups()
-        QgsProject.instance().layersAdded.connect(self.updateGroups)
-        QgsProject.instance().layersRemoved.connect(self.updateGroups)
+        self.filter_ggs_files()
+        self.update_groups()
+        QgsProject.instance().layersAdded.connect(self.update_groups)
+        QgsProject.instance().layersRemoved.connect(self.update_groups)
         layers_treeroot = QgsProject.instance().layerTreeRoot()
-        layers_treeroot.layerOrderChanged.connect(self.updateGroups)
-        self.pb_updateList.clicked.connect(self.updateGroups)
-        self.pb_connexion.clicked.connect(self.checkAdmin)
-        self.pbClose.clicked.connect(self.closeDialog)
+        layers_treeroot.layerOrderChanged.connect(self.update_groups)
+        self.pb_updateList.clicked.connect(self.update_groups)
+        self.pb_connexion.clicked.connect(self.check_admin)
+        self.pbClose.clicked.connect(self.close_dialog)
         self.checkBox.stateChanged.connect(self.default_file)
-        self.pushButton.clicked.connect(self.updateProgressBar)
+        self.pushButton.clicked.connect(self.update_progressbar)
 
-    def connexion_Postgis(self):
+    def connexion_postgis(self):
         res = False
         utilisateur = self.lineEdit.text()
         password = self.mLineEdit.text()
@@ -88,11 +88,11 @@ class MetaGamAdminDialog(QtWidgets.QDialog, FORM_CLASS):
             msg.exec_()
             return res
 
-    def checkAdmin(self):
-        if self.connexion_Postgis():
+    def check_admin(self):
+        if self.connexion_postgis():
             self.frame_2.setVisible(True)
 
-    def getProjectGroups(self):
+    def get_project_groups(self):
         # Récupérer le projet courant
         project = QgsProject.instance()
         # Récupérer la liste de tous les groupes de couches du projet
@@ -105,9 +105,9 @@ class MetaGamAdminDialog(QtWidgets.QDialog, FORM_CLASS):
             root_groups.append(group)
         return root_groups
 
-    def updateGroups(self):
+    def update_groups(self):
         # Ajouter les noms de chaque groupe racine à la QComboBox
-        groups = self.getProjectGroups()
+        groups = self.get_project_groups()
         self.groupsList.clear()  # Effacer les éléments précédents
         for group in groups:
             self.groupsList.addItem(group.name())
@@ -119,7 +119,7 @@ class MetaGamAdminDialog(QtWidgets.QDialog, FORM_CLASS):
         else:  # État de coche désactivé
             self.file_project_widget.setFilePath("")
 
-    def filterQgsFiles(self):
+    def filter_ggs_files(self):
         self.file_project_widget.setFilter("*.qgs")
 
     def copy_layers_to_dest(self, group_name, projet_destination, projet_source):
@@ -159,7 +159,7 @@ class MetaGamAdminDialog(QtWidgets.QDialog, FORM_CLASS):
         destination_project.clear()
         del source_project
 
-    def updateProgressBar(self):
+    def update_progressbar(self):
         self.progressBar.setRange(0, 100)
         self.progressBar.setValue(0)
         if self.file_project_widget.filePath() == "":
@@ -172,5 +172,5 @@ class MetaGamAdminDialog(QtWidgets.QDialog, FORM_CLASS):
             self.check_group_exists()
         self.progressBar.setValue(100)
 
-    def closeDialog(self):
+    def close_dialog(self):
         self.close()
