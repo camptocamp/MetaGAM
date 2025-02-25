@@ -40,7 +40,7 @@ from qgis.core import (
     QgsAbstractMetadataBase,
     QgsNativeMetadataValidator,
     QgsMapLayer,
-    QgsWkbTypes
+    QgsWkbTypes,
 )
 from qgis.gui import QgsCheckableComboBox
 from qgis.PyQt.QtCore import Qt, QUrl
@@ -49,7 +49,7 @@ from qgis.PyQt.QtGui import (
     QColor,
     QDesktopServices,
     QStandardItem,
-    QStandardItemModel
+    QStandardItemModel,
 )
 from qgis.PyQt.QtWidgets import (
     QDialog,
@@ -63,7 +63,7 @@ from qgis.PyQt.QtWidgets import (
     QTreeWidgetItem,
     QCheckBox,
     QComboBox,
-    QTextEdit
+    QTextEdit,
 )
 from qgis.PyQt.uic import loadUiType
 
@@ -80,6 +80,7 @@ LICENCE_FERMEE = "Licence fermée (Uniquement en interne)"
 
 GAM_GEOFLUX_URL = "https://geoflux.grenoblealpesmetropole.fr/geoserver"
 THEMES_INSPIRE = "Thèmes INSPIRE"
+
 
 class MetaGAMDialog(QDialog, FORM_CLASS):
     def __init__(self, parent=None):
@@ -497,9 +498,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             link_wms.type = "OGC-WMS Capabilities service (ver 1.3.0)"
                             link_wms.description = layer_name
                             link_wms.url = (
-                                GAM_GEOFLUX_URL
-                                + layer_schema
-                                + "/ows?SERVICE=WMS&"
+                                GAM_GEOFLUX_URL + layer_schema + "/ows?SERVICE=WMS&"
                             )
                             link_wms.format = "WMS"
 
@@ -761,9 +760,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         for j in range(value_inspire.count()):
                             value_inspire.itemText(j)
                             popup_text = popup_texts[j]
-                            value_inspire.setItemData(
-                                j, popup_text, Qt.ToolTipRole
-                            )
+                            value_inspire.setItemData(j, popup_text, Qt.ToolTipRole)
 
                         item_keywords = QTreeWidgetItem(attribut)
                         item_keywords.setText(2, str("Mots-clés"))
@@ -827,7 +824,9 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         end = source.find(".")
                         layer_schema = source[start:end]
                         layer_schema = layer_schema[1:-1]
-                        self.get_new_tree_val(parent, layer_name, layer_meta, layer_schema)
+                        self.get_new_tree_val(
+                            parent, layer_name, layer_meta, layer_schema
+                        )
                         layer.setMetadata(layer_meta)
                         dict_inspire = self.dictTreeInspireVal()
             self.LayersTree()
@@ -934,9 +933,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         link_wms.type = "OGC-WMS Capabilities service (ver 1.3.0)"
                         link_wms.description = parent_text
                         link_wms.url = (
-                            GAM_GEOFLUX_URL
-                            + layer_schema
-                            + "/ows?SERVICE=WMS&"
+                            GAM_GEOFLUX_URL + layer_schema + "/ows?SERVICE=WMS&"
                         )
                         link_wms.format = "WMS"
 
@@ -1364,7 +1361,9 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                     layer_dominateur = self.getLayerDenominateur(layer)
                     if self.tree_checkbox_status.get(i):
                         meta_id = meta_id[0]
-                        date_publication = get_meta_date_gn(username, motdepass, meta_id)
+                        date_publication = get_meta_date_gn(
+                            username, motdepass, meta_id
+                        )
                         create_zip(
                             layer_name,
                             meta_id,
