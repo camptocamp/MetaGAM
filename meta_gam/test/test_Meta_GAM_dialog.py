@@ -8,10 +8,6 @@
 
 """
 
-__author__ = "demande_sit@grenoblealpesmetropole.fr"
-__date__ = "2022-12-22"
-__copyright__ = "Copyright 2022, Service SIT - Amr HAMADEH"
-
 import unittest
 import requests
 
@@ -23,6 +19,10 @@ from meta_gam.Meta_GAM_dialog import MetaGAMDialog
 from meta_gam.Meta_GAM_Geonetwork import CATALOG
 
 from meta_gam.test.utilities import get_qgis_app
+
+__author__ = "demande_sit@grenoblealpesmetropole.fr"
+__date__ = "2022-12-22"
+__copyright__ = "Copyright 2022, Service SIT - Amr HAMADEH"
 
 QGIS_APP = get_qgis_app()
 
@@ -53,7 +53,7 @@ class MetaGAMDialogTest(unittest.TestCase):
         assert root.childCount() == 0
         self.dialog.pbAutoMeta.click()
         assert root.childCount() == 1
-        self.assertTrue(self.dialog.ConnexionPostgresql()[0])
+        self.assertTrue(self.dialog.connexion_postgresql()[0])
 
     def test_publish(self):
         """Test we can publish the data."""
@@ -70,7 +70,7 @@ class MetaGAMDialogTest(unittest.TestCase):
         assert root.childCount() == 0
         self.dialog.pbAutoMeta.click()
         assert root.childCount() == 2
-        assert self.dialog.checkTreeTitle()
+        assert self.dialog.check_tree_title()
         self.dialog.leUsername.setText("admin")
         self.dialog.lePassword.setText("admin")
         assert self.dialog.pbPost.isHidden()
@@ -84,7 +84,9 @@ class MetaGAMDialogTest(unittest.TestCase):
         uuid = "50e3a04d-4744-46a0-8a70-09da72860a3f"
         uuid = url.split("/")[-1]
         test_layer = requests.get(
-            CATALOG + "/srv/api/records/" + uuid, headers={"accept": "application/json"}
+            CATALOG + "/srv/api/records/" + uuid,
+            headers={"accept": "application/json"},
+            timeout=30,
         )
         assert test_layer.status_code == 200
         ss = requests.Session()
@@ -92,6 +94,7 @@ class MetaGAMDialogTest(unittest.TestCase):
             CATALOG + "/srv/api/me",
             headers={"accept": "application/json"},
             auth=("admin", "admin"),
+            timeout=30,
         )
         assert me.json()["profile"] == "Administrator"
         xsrf = ss.cookies.get("XSRF-TOKEN")
@@ -99,7 +102,9 @@ class MetaGAMDialogTest(unittest.TestCase):
             CATALOG + "/srv/api/records/" + uuid,
             auth=("admin", "admin"),
             headers={"X-XSRF-TOKEN": xsrf},
+            timeout=30,
         )
+        assert deletion.status_code == 204
         ss.close()
 
     def test_dialog_cancel(self):

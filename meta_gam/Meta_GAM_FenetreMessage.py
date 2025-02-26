@@ -1,10 +1,18 @@
-from qgis.PyQt.QtWidgets import QDockWidget
+"""
+module for dockable text widget
+"""
+
 from PyQt5 import QtWidgets
+from qgis.PyQt.QtWidgets import QDockWidget
 
 
-class TextDockWidget(QDockWidget):
+class TextDockWidget(QDockWidget):  # pylint: disable=too-few-public-methods
+    """
+    dockable text widget
+    """
+
     def __init__(self, parent=None):
-        super(TextDockWidget, self).__init__(parent)
+        super().__init__(parent)
 
         self.setWindowTitle("Mon dockwidget texte")
         self.text_widget = QtWidgets.QWidget()

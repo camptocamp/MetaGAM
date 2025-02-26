@@ -24,14 +24,13 @@
 """
 
 
-# noinspection PyPep8Naming
-def classFactory(iface):  # pylint: disable=invalid-name
+def classFactory(iface):
     """Load MetaGAM class from file MetaGAM.
 
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface
     """
     #
-    from .Meta_GAM import MetaGAM
+    from .Meta_GAM import MetaGAM  # pylint: disable=import-outside-toplevel
 
     return MetaGAM(iface)

@@ -22,27 +22,33 @@
  ***************************************************************************/
 """
 
-### Importer les bibliotheques nécessaires
 import os
+import shutil
 import zipfile
 from datetime import datetime
 from xml.dom import minidom
-from xml.etree import ElementTree
-from xml.etree.ElementTree import Element, SubElement
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-import lxml.etree as lxml
-from qgis.core import *
 import xml.etree.ElementTree as ET
-import shutil
-import xml.dom.minidom
+from xml.etree.ElementTree import Element, SubElement
+import lxml.etree as lxml
 
-### Variables locales pour les chemins des fichiers
+from PyQt5.QtCore import QSize
+from PyQt5.QtGui import QImage, QPainter, QColor
+from qgis.core import (
+    QgsProject,
+    QgsMapSettings,
+    QgsRectangle,
+    QgsMapRendererCustomPainterJob,
+)
+
+GMD_URL = "http://www.isotc211.org/2005/gmd"
+GCO_URL = "http://www.isotc211.org/2005/gco"
+
+# Variables locales pour les chemins des fichiers
 current_file_path = os.path.abspath(__file__)
 ISO_file_path = os.path.join(os.path.dirname(current_file_path), "resources")
 temp_file = os.path.join(os.path.dirname(current_file_path), "temp")
-new_xml_block = """
-    <gmd:pointOfContact xmlns:gmd="http://www.isotc211.org/2005/gmd" xmlns:gco="http://www.isotc211.org/2005/gco">
+new_xml_block = f"""
+    <gmd:pointOfContact xmlns:gmd="{GMD_URL}" xmlns:gco="{GCO_URL}">
         <gmd:CI_ResponsibleParty>
             <gmd:individualName>
                 <gco:CharacterString></gco:CharacterString>
@@ -96,7 +102,7 @@ new_xml_block = """
 """
 
 
-def saveTempQmd(layer_name):
+def save_temp_qmd(layer_name):
     """_summary_
 
     Fonction qui sauvegarde le fichier .qmd depuis qgis dans le répertoire temporaire.
@@ -107,12 +113,12 @@ def saveTempQmd(layer_name):
         fichier qmd : fichier qmd généré par Qgis contenant les metadata
     """
     layer = QgsProject.instance().mapLayersByName(layer_name)
-    Qmd_file = temp_file + "/" + layer_name + ".qmd"
-    layer[0].saveNamedMetadata(Qmd_file)
-    return Qmd_file
+    qmd_file = temp_file + "/" + layer_name + ".qmd"
+    layer[0].saveNamedMetadata(qmd_file)
+    return qmd_file
 
 
-def transform_QMD_TO_XML(layer_name):
+def transform_qmd_to_xml(layer_name):
     """_summary_
 
     Fonction qui va traduire le fichier .qmd en texte xml (car le qmd n'est pas lisible par geonetwork).
@@ -122,9 +128,9 @@ def transform_QMD_TO_XML(layer_name):
     Returns:
         str : génére le code xml qui correspond au fichier qmd
     """
-    input_Qmd_file = saveTempQmd(layer_name)
+    input_qmd_file = save_temp_qmd(layer_name)
     xslt_file = ISO_file_path + "/qgis-to-iso19139.xsl"
-    in_dom = lxml.parse(input_Qmd_file)
+    in_dom = lxml.parse(input_qmd_file)
     xslt = lxml.parse(xslt_file)
     transform = lxml.XSLT(xslt)
     out_dom = transform(in_dom)
@@ -136,10 +142,11 @@ def transform_QMD_TO_XML(layer_name):
     return dom.toprettyxml(indent="  ")
 
 
-def addThumbnail(uuid, layer_name):
+def add_thumbnail(uuid, layer_name):
     """_summary_
 
-    Fonction qui  créer une image de taille 800x800 pixels de l'étendu spatiale des données en question avec un arrière-plan blanc.
+    Fonction qui  créer une image de taille 800x800 pixels de l'étendu
+    spatiale des données en question avec un arrière-plan blanc.
 
     Args:
         uuid (str): code unique identifiant une fiche de metadata
@@ -176,7 +183,7 @@ def addThumbnail(uuid, layer_name):
     img.save(temp_folder + "/" + uuid + ".png")
 
 
-def addSubElement(parent, tag, value=None, attrib=None):
+def add_sub_element(parent, tag, value=None, attrib=None):
     """_summary_
 
     Fonction qui définit les parents/enfants dans un fichier xml.
@@ -196,7 +203,7 @@ def addSubElement(parent, tag, value=None, attrib=None):
     return sub
 
 
-def createInfoXml(uuid, thumb_filename):
+def create_info_xml(uuid, thumb_filename):
     """_summary_
 
     Cette fonction créer le fichier info.xml qui contient des infromations nécessaires au fichier zip de metadata.
@@ -209,75 +216,80 @@ def createInfoXml(uuid, thumb_filename):
         str: code xml.
     """
     root = Element("info", {"version": "1.1"})
-    general = addSubElement(root, "general")
+    general = add_sub_element(root, "general")
     d = datetime.now().isoformat()
-    addSubElement(general, "changeDate", d)
-    addSubElement(general, "createDate", d)
-    addSubElement(general, "schema", "iso19139")
-    addSubElement(general, "isTemplate", "n")
-    addSubElement(general, "format", "full")
-    addSubElement(general, "localId")
-    addSubElement(general, "uuid", uuid)
-    addSubElement(general, "siteId", "site_test")
-    addSubElement(general, "siteName", "site_name_test")
-    addSubElement(root, "categories", attrib={"name": "photo"})
-    privs = addSubElement(root, "privileges")
-    grp = addSubElement(privs, "group", attrib={"name": "all"})
-    addSubElement(grp, "operation", attrib={"name": "dynamic"})
-    addSubElement(grp, "operation", attrib={"name": "featured"})
-    addSubElement(grp, "operation", attrib={"name": "view"})
-    addSubElement(grp, "operation", attrib={"name": "download"})
-    public = addSubElement(root, "public")
-    addSubElement(
+    add_sub_element(general, "changeDate", d)
+    add_sub_element(general, "createDate", d)
+    add_sub_element(general, "schema", "iso19139")
+    add_sub_element(general, "isTemplate", "n")
+    add_sub_element(general, "format", "full")
+    add_sub_element(general, "localId")
+    add_sub_element(general, "uuid", uuid)
+    add_sub_element(general, "siteId", "site_test")
+    add_sub_element(general, "siteName", "site_name_test")
+    add_sub_element(root, "categories", attrib={"name": "photo"})
+    privs = add_sub_element(root, "privileges")
+    grp = add_sub_element(privs, "group", attrib={"name": "all"})
+    add_sub_element(grp, "operation", attrib={"name": "dynamic"})
+    add_sub_element(grp, "operation", attrib={"name": "featured"})
+    add_sub_element(grp, "operation", attrib={"name": "view"})
+    add_sub_element(grp, "operation", attrib={"name": "download"})
+    public = add_sub_element(root, "public")
+    add_sub_element(
         public,
         "file",
         attrib={"name": os.path.basename(thumb_filename), "changeDate": d},
     )
-    addSubElement(root, "private")
-    xmlstring = ElementTree.tostring(root, encoding="UTF-8", method="xml").decode()
+    add_sub_element(root, "private")
+    xmlstring = ET.tostring(root, encoding="UTF-8", method="xml").decode()
     dom = minidom.parseString(xmlstring)
     return dom.toprettyxml(indent="  ")
 
 
-def createZip(
-    layer_name, uuid, INSPIRE_keywords, LayerType, LayerDenominateur, DatePublication
+def create_zip(
+    layer_name, uuid, inspire_keywords, layer_type, layer_denominateur, date_publication
 ):
     """_summary_
 
-    Cette fonction permet de créer le fichier zip contenant les fichiers xml et images sous un format lisible par geonetwork.
+    Cette fonction permet de créer le fichier zip contenant les fichiers xml et
+    images sous un format lisible par geonetwork.
 
     Args:
         layer_name (str): nom de la couche.
         uuid (str): code unique identifiant une fiche de metadata.
-        INSPIRE_keywords (str): une liste de chaînes de caractères représentant les mots-clés INSPIRE associés à la couche.
+        inspire_keywords (str): une liste de chaînes de caractères représentant
+                                les mots-clés INSPIRE associés à la couche.
     """
     thumb_filename = temp_file + "/" + uuid + ".png"
     zip_filename = temp_file + "/" + uuid + ".zip"
-    addThumbnail(uuid, layer_name)
-    z = zipfile.ZipFile(zip_filename, "w")
-    meta_xml = transform_QMD_TO_XML(layer_name)
-    if INSPIRE_keywords:
-        meta_xml = insertINSPIRExml(meta_xml, INSPIRE_keywords)
-    meta_xml = insertLayerType(meta_xml, LayerType)
-    meta_xml = insertLayerDenominateur(meta_xml, LayerDenominateur)
-    meta_xml = updateFileIdentifier(meta_xml, uuid)
-    meta_xml = insertContactXml(meta_xml)
-    if DatePublication != None:
-        meta_xml = insertDatePublication(meta_xml, DatePublication)
-    z.writestr(os.path.join(uuid, os.path.join("metadata", "metadata.xml")), meta_xml)
-    z.write(
-        thumb_filename, os.path.join(uuid, "public", os.path.basename(thumb_filename))
-    )
-    z.writestr(os.path.join(uuid, os.path.join("private", "")), "")
-    info = createInfoXml(uuid, thumb_filename)
-    z.writestr(os.path.join(uuid, "info.xml"), info)
-    z.close()
+    add_thumbnail(uuid, layer_name)
+    with zipfile.ZipFile(zip_filename, "w") as z:
+        meta_xml = transform_qmd_to_xml(layer_name)
+        if inspire_keywords:
+            meta_xml = insert_inspire_xml(meta_xml, inspire_keywords)
+        meta_xml = insert_layer_type(meta_xml, layer_type)
+        meta_xml = insert_layer_denominateur(meta_xml, layer_denominateur)
+        meta_xml = update_file_identifier(meta_xml, uuid)
+        meta_xml = insert_contact_xml(meta_xml)
+        if date_publication is not None:
+            meta_xml = insert_date_publication(meta_xml, date_publication)
+        z.writestr(
+            os.path.join(uuid, os.path.join("metadata", "metadata.xml")), meta_xml
+        )
+        z.write(
+            thumb_filename,
+            os.path.join(uuid, "public", os.path.basename(thumb_filename)),
+        )
+        z.writestr(os.path.join(uuid, os.path.join("private", "")), "")
+        info = create_info_xml(uuid, thumb_filename)
+        z.writestr(os.path.join(uuid, "info.xml"), info)
 
 
-def cleanTemp():
+def clean_temp():
     """_summary_
 
-    Cette fonction permet de supprimer tous les fichiers et dossiers du répertoire temporaire (variable temp_file) sauf les fichiers zip et le fichier cookie.txt.
+    Cette fonction permet de supprimer tous les fichiers et dossiers du répertoire
+    temporaire (variable temp_file) sauf les fichiers zip et le fichier cookie.txt.
     """
     for filename in os.listdir(temp_file):
         if filename.endswith(".zip") or filename == "cookie.txt":
@@ -287,11 +299,11 @@ def cleanTemp():
             os.unlink(file_path)
         elif os.path.isdir(file_path):
             shutil.rmtree(file_path)
-            """         except Exception as e:
-            print('Pas possible de supprimer %s. Raison: %s' % (file_path, e)) """
+            # except Exception as e:
+            #     print('Pas possible de supprimer %s. Raison: %s' % (file_path, e))
 
 
-def removeAllZipFiles():
+def remove_all_zip_files():
     """_summary_
 
     Cette fonction permet de supprimer tous les fichiers zip du fichier temporaire.
@@ -302,14 +314,17 @@ def removeAllZipFiles():
             os.unlink(file_path)
 
 
-def insertINSPIRExml(xml_string, keywords):
+def insert_inspire_xml(xml_string, keywords):
     """_summary_
 
-    Cette fonction renvoie une chaîne de caractères représentant le document XML mis à jour avec les mots-clés INSPIRE ajoutés, formatée avec une indentation pour une meilleure lisibilité.
+    Cette fonction renvoie une chaîne de caractères représentant le document XML
+    mis à jour avec les mots-clés INSPIRE ajoutés, formatée avec une indentation
+    pour une meilleure lisibilité.
 
     Args:
         xml_string (str): une chaîne de caractères représentant un document XML contenant des métadonnées.
-        keywords (str): une liste de chaînes de caractères représentant les mots-clés INSPIRE à ajouter aux métadonnées.
+        keywords (str): une liste de chaînes de caractères représentant les mots-clés
+                        INSPIRE à ajouter aux métadonnées.
 
     Returns:
         str : code xml.
@@ -318,12 +333,12 @@ def insertINSPIRExml(xml_string, keywords):
     root = tree
 
     namespaces = {
-        "gmd": "http://www.isotc211.org/2005/gmd",
-        "gco": "http://www.isotc211.org/2005/gco",
+        "gmd": GMD_URL,
+        "gco": GCO_URL,
     }
 
-    ET.register_namespace("gmd", "http://www.isotc211.org/2005/gmd")
-    ET.register_namespace("gco", "http://www.isotc211.org/2005/gco")
+    ET.register_namespace("gmd", GMD_URL)
+    ET.register_namespace("gco", GCO_URL)
     key = "{http://www.isotc211.org/2005/gmd}descriptiveKeywords"
     descriptive_keywords = [
         el
@@ -341,17 +356,19 @@ def insertINSPIRExml(xml_string, keywords):
             gco_string.text = keyword
 
         xml_string = ET.tostring(root, encoding="utf-8", method="xml")
-    return xml.dom.minidom.parseString(xml_string).toprettyxml(indent="  ")
+    return minidom.parseString(xml_string).toprettyxml(indent="  ")
 
 
-def insertLayerType(xml_string, LayerType):
+def insert_layer_type(xml_string, layer_type):
     """_summary_
 
-    Cette fonction renvoie une chaîne de caractères représentant le document XML mis à jour avec le type de la couche, formatée avec une indentation pour une meilleure lisibilité.
+    Cette fonction renvoie une chaîne de caractères représentant le document
+    XML mis à jour avec le type de la couche, formatée avec une indentation
+    pour une meilleure lisibilité.
 
     Args:
         xml_string (str): une chaîne de caractères représentant un document XML contenant des métadonnées.
-        LayerType (str): chaîne de caractères représentant le type de la couche.
+        layer_type (str): chaîne de caractères représentant le type de la couche.
 
     Returns:
         str : code xml.
@@ -360,12 +377,12 @@ def insertLayerType(xml_string, LayerType):
     root = tree
 
     namespaces = {
-        "gmd": "http://www.isotc211.org/2005/gmd",
-        "gco": "http://www.isotc211.org/2005/gco",
+        "gmd": GMD_URL,
+        "gco": GCO_URL,
     }
 
-    ET.register_namespace("gmd", "http://www.isotc211.org/2005/gmd")
-    ET.register_namespace("gco", "http://www.isotc211.org/2005/gco")
+    ET.register_namespace("gmd", GMD_URL)
+    ET.register_namespace("gco", GCO_URL)
     key = "{http://www.isotc211.org/2005/gmd}spatialRepresentationType"
     spatial_representation_types_code = [
         el
@@ -380,20 +397,23 @@ def insertLayerType(xml_string, LayerType):
         md_spatial_representation_type_code = spatial_representation_types_code[0].find(
             "./gmd:MD_SpatialRepresentationTypeCode", namespaces
         )
-        md_spatial_representation_type_code.attrib["codeListValue"] = LayerType
+        md_spatial_representation_type_code.attrib["codeListValue"] = layer_type
 
         xml_string = ET.tostring(root, encoding="utf-8", method="xml")
-    return xml.dom.minidom.parseString(xml_string).toprettyxml(indent="  ")
+    return minidom.parseString(xml_string).toprettyxml(indent="  ")
 
 
-def insertLayerDenominateur(xml_string, LayerDenominateur):
+def insert_layer_denominateur(xml_string, layer_denominateur):
     """_summary_
 
-    Cette fonction renvoie une chaîne de caractères représentant le document XML mis à jour avec le LayerDenominateur inséré entre les balises appropriées, formaté avec une indentation pour une meilleure lisibilité.
+    Cette fonction renvoie une chaîne de caractères représentant le document XML
+    mis à jour avec le layer_denominateur inséré entre les balises appropriées,
+    formaté avec une indentation pour une meilleure lisibilité.
 
     Args:
         xml_string (str): une chaîne de caractères représentant un document XML contenant des métadonnées.
-        LayerDenominateur (str): chaîne de caractères représentant la valeur à insérer dans les balises <gco:Integer></gco:Integer>.
+        layer_denominateur (str): chaîne de caractères représentant la valeur à
+                                  insérer dans les balises <gco:Integer></gco:Integer>.
 
     Returns:
         str : code xml.
@@ -402,12 +422,12 @@ def insertLayerDenominateur(xml_string, LayerDenominateur):
     root = tree
 
     namespaces = {
-        "gmd": "http://www.isotc211.org/2005/gmd",
-        "gco": "http://www.isotc211.org/2005/gco",
+        "gmd": GMD_URL,
+        "gco": GCO_URL,
     }
 
-    ET.register_namespace("gmd", "http://www.isotc211.org/2005/gmd")
-    ET.register_namespace("gco", "http://www.isotc211.org/2005/gco")
+    ET.register_namespace("gmd", GMD_URL)
+    ET.register_namespace("gco", GCO_URL)
 
     key = "{http://www.isotc211.org/2005/gmd}denominator"
     denominators = root.findall(".//" + key, namespaces)
@@ -415,41 +435,41 @@ def insertLayerDenominateur(xml_string, LayerDenominateur):
     for denominator in denominators:
         integer_element = denominator.find("./gco:Integer", namespaces)
         if integer_element is not None:
-            integer_element.text = str(LayerDenominateur)
+            integer_element.text = str(layer_denominateur)
 
     xml_string = ET.tostring(root, encoding="utf-8", method="xml")
 
-    return xml.dom.minidom.parseString(xml_string).toprettyxml(indent="  ")
+    return minidom.parseString(xml_string).toprettyxml(indent="  ")
 
 
-def insertDatePublication(xml_string, DatePublication):
-    """Insère la valeur DatePublication entre les balises <gco:Date></gco:Date> du document XML.
+def insert_date_publication(xml_string, date_publication):
+    """Insère la valeur date_publication entre les balises <gco:Date></gco:Date> du document XML.
 
     Args:
         xml_string (str): Une chaîne de caractères représentant un document XML contenant des métadonnées.
-        DatePublication (str): La valeur à insérer dans les balises <gco:Date></gco:Date>.
+        date_publication (str): La valeur à insérer dans les balises <gco:Date></gco:Date>.
 
     Returns:
-        str: Le document XML mis à jour avec DatePublication, formaté avec une indentation.
+        str: Le document XML mis à jour avec date_publication, formaté avec une indentation.
     """
     tree = ET.fromstring(xml_string)
     root = tree
 
     namespaces = {
-        "gmd": "http://www.isotc211.org/2005/gmd",
-        "gco": "http://www.isotc211.org/2005/gco",
+        "gmd": GMD_URL,
+        "gco": GCO_URL,
     }
 
-    ET.register_namespace("gmd", "http://www.isotc211.org/2005/gmd")
-    ET.register_namespace("gco", "http://www.isotc211.org/2005/gco")
+    ET.register_namespace("gmd", GMD_URL)
+    ET.register_namespace("gco", GCO_URL)
 
-    key = "{http://www.isotc211.org/2005/gco}Date"
+    # key = "{http://www.isotc211.org/2005/gco}Date"
     date_elements = root.findall(
         ".//gmd:date/gmd:CI_Date/gmd:date/gco:Date", namespaces
     )
 
     for date_element in date_elements:
-        date_element.text = str(DatePublication)
+        date_element.text = str(date_publication)
 
     xml_string = ET.tostring(root, encoding="utf-8", method="xml")
     xml_formatted = xml_string.decode()
@@ -457,20 +477,21 @@ def insertDatePublication(xml_string, DatePublication):
     return xml_formatted
 
 
-def updateFileIdentifier(xml_string, MetaID):
-    """Cette fonction renvoie une chaîne de caractères représentant le document XML mis à jour l'identifiant de la fiche au lieu de celui de la table.
+def update_file_identifier(xml_string, meta_id):
+    """Cette fonction renvoie une chaîne de caractères représentant le document XML
+    mis à jour l'identifiant de la fiche au lieu de celui de la table.
 
     Args:
         xml_string (str): une chaîne de caractères représentant un document XML contenant des métadonnées.
-        MetaID (str): chaîne de caractères représentant l'identifiant de la fiche.
+        meta_id (str): chaîne de caractères représentant l'identifiant de la fiche.
 
     Returns:
         str : code xml.
     """
     tree = ET.fromstring(xml_string)
     namespaces = {
-        "gmd": "http://www.isotc211.org/2005/gmd",
-        "gco": "http://www.isotc211.org/2005/gco",
+        "gmd": GMD_URL,
+        "gco": GCO_URL,
     }
 
     file_identifier_element = tree.find(
@@ -478,23 +499,24 @@ def updateFileIdentifier(xml_string, MetaID):
     )
 
     if file_identifier_element is not None:
-        file_identifier_element.text = MetaID
+        file_identifier_element.text = meta_id
 
     file_name_element = tree.find(".//gmd:fileName/gco:CharacterString", namespaces)
 
     if file_name_element is not None:
-        file_name_element.text = MetaID + ".png"
+        file_name_element.text = meta_id + ".png"
 
     updated_xml_string = ET.tostring(tree, encoding="utf-8", method="xml")
-    prettified_xml_string = xml.dom.minidom.parseString(updated_xml_string).toprettyxml(
+    prettified_xml_string = minidom.parseString(updated_xml_string).toprettyxml(
         indent="  "
     )
 
     return prettified_xml_string
 
 
-def insertContactXml(xml_string):
-    """Cette fonction renvoie une chaîne de caractères représentant le document XML mis à jour avec le contact de la métropole.
+def insert_contact_xml(xml_string):
+    """Cette fonction renvoie une chaîne de caractères représentant le document
+    XML mis à jour avec le contact de la métropole.
 
     Args:
         xml_string (str): une chaîne de caractères représentant un document XML contenant des métadonnées.
@@ -506,12 +528,12 @@ def insertContactXml(xml_string):
     root = tree
 
     namespaces = {
-        "gmd": "http://www.isotc211.org/2005/gmd",
-        "gco": "http://www.isotc211.org/2005/gco",
+        "gmd": GMD_URL,
+        "gco": GCO_URL,
     }
 
-    ET.register_namespace("gmd", "http://www.isotc211.org/2005/gmd")
-    ET.register_namespace("gco", "http://www.isotc211.org/2005/gco")
+    ET.register_namespace("gmd", GMD_URL)
+    ET.register_namespace("gco", GCO_URL)
 
     point_of_contact = root.find(".//gmd:pointOfContact", namespaces)
     descriptive_keywords_parent = root.find(
@@ -526,4 +548,4 @@ def insertContactXml(xml_string):
         descriptive_keywords_parent.insert(index, new_element)
 
     xml_string = ET.tostring(root, encoding="utf-8", method="xml")
-    return xml.dom.minidom.parseString(xml_string).toprettyxml(indent="  ")
+    return minidom.parseString(xml_string).toprettyxml(indent="  ")

@@ -8,13 +8,13 @@
 
 """
 
-__author__ = "demande_sit@grenoblealpesmetropole.fr"
-__date__ = "2022-12-22"
-__copyright__ = "Copyright 2022, Service SIT - Amr HAMADEH"
-
 import unittest
 
 from qgis.PyQt.QtGui import QIcon
+
+__author__ = "demande_sit@grenoblealpesmetropole.fr"
+__date__ = "2022-12-22"
+__copyright__ = "Copyright 2022, Service SIT - Amr HAMADEH"
 
 
 class MetaGAMDialogTest(unittest.TestCase):
@@ -34,6 +34,6 @@ class MetaGAMDialogTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    suite = unittest.makeSuite(MetaGAMResourcesTest)
+    suite = unittest.defaultTestLoader.loadTestsFromTestCase(MetaGAMDialogTest)
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite)

@@ -8,9 +8,11 @@
 import sys
 import getpass
 import xmlrpc.client
-from optparse import OptionParser
+from optparse import OptionParser  # pylint: disable=deprecated-module
 
-standard_library.install_aliases()
+# pylint: disable=consider-using-f-string
+
+standard_library.install_aliases()  # pylint: disable=undefined-variable
 
 # Configuration
 PROTOCOL = "https"

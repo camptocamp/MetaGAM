@@ -13,6 +13,13 @@
 
 """
 
+import logging
+from typing import List
+from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal, QSize
+from qgis.PyQt.QtWidgets import QDockWidget
+from qgis.core import QgsProject, QgsMapLayer
+from qgis.gui import QgsMapCanvas, QgsMessageBar
+
 __author__ = "tim@linfiniti.com"
 __revision__ = "$Format:%H$"
 __date__ = "10/01/2011"
@@ -21,13 +28,6 @@ __copyright__ = (
     "Copyright (c) 2011 German Carrillo, geotux_tuxman@linuxmail.org"
     "Copyright (c) 2014 Tim Sutton, tim@linfiniti.com"
 )
-
-import logging
-from typing import List
-from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal, QSize
-from qgis.PyQt.QtWidgets import QDockWidget
-from qgis.core import QgsProject, QgsMapLayer
-from qgis.gui import QgsMapCanvas, QgsMessageBar
 
 LOGGER = logging.getLogger("QGIS")
 
@@ -72,9 +72,6 @@ class QgisInterface(QObject):
         .. note:: The QgsInterface api does not include this method,
             it is added here as a helper to facilitate testing.
         """
-        # LOGGER.debug('addLayers called on qgis_interface')
-        # LOGGER.debug('Number of layers being added: %s' % len(layers))
-        # LOGGER.debug('Layer Count Before: %s' % len(self.canvas.layers()))
         current_layers = self.canvas.layers()
         final_layers = []
         for layer in current_layers:
@@ -83,7 +80,6 @@ class QgisInterface(QObject):
             final_layers.append(layer)
 
         self.canvas.setLayers(final_layers)
-        # LOGGER.debug('Layer Count After: %s' % len(self.canvas.layers()))
 
     def addLayer(self, layer: QgsMapLayer):
         """Handle a layer being added to the registry so it shows up in canvas.
@@ -99,11 +95,11 @@ class QgisInterface(QObject):
         pass  # pylint: disable=unnecessary-pass
 
     @pyqtSlot()
-    def removeAllLayers(self):  # pylint: disable=no-self-use
+    def removeAllLayers(self):
         """Remove layers from the canvas before they get deleted."""
         self.canvas.setLayers([])
 
-    def newProject(self):  # pylint: disable=no-self-use
+    def newProject(self):
         """Create new project."""
         # noinspection PyArgumentList
         QgsProject.instance().clear()
@@ -151,7 +147,7 @@ class QgisInterface(QObject):
         """
         pass  # pylint: disable=unnecessary-pass
 
-    def activeLayer(self) -> QgsMapLayer:  # pylint: disable=no-self-use
+    def activeLayer(self) -> QgsMapLayer:
         """Get pointer to the active layer (layer selected in the legend)."""
         # noinspection PyArgumentList
         layers = QgsProject.instance().mapLayers()
@@ -219,7 +215,7 @@ class QgisInterface(QObject):
         """Get the legend."""
         return self.canvas
 
-    def iconSize(self, dockedToolbar) -> int:  # pylint: disable=no-self-use
+    def iconSize(self, dockedToolbar) -> int:
         """
         Returns the toolbar icon size.
         :param dockedToolbar: If True, the icon size

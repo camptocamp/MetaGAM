@@ -1,22 +1,35 @@
+"""
+test fonctionnel principal
+"""
 import unittest
-from ..Meta_GAM_Geonetwork import connexionGeonetwork, getMetaDateGN
 from requests.structures import CaseInsensitiveDict
+from ..Meta_GAM_Geonetwork import connexion_geonetwork, get_meta_date_gn
 
 
 class MyTestClass(unittest.TestCase):
+    """
+    TestCase structure
+    """
+
     def setUp(self):
-        # Initialisation des objets nécessaires pour le test
+        """
+        Initialisation des objets nécessaires pour le test
+        """
         self.user = "TestCICD"
         self.password = "Git12345@"
         self.uuid = "ed84693d-1444-4230-ad25-b8e6f9b71c7b"
 
     def tearDown(self):
-        # Nettoyage après le test si nécessaire
-        pass
+        """
+        Nettoyage après le test si nécessaire
+        """
+        pass  # pylint: disable=unnecessary-pass
 
     def test_connexionGeonetwork(self):
-        # Appel de la fonction à tester
-        result = connexionGeonetwork(self.user, self.password)
+        """
+        Appel de la fonction à tester
+        """
+        result = connexion_geonetwork(self.user, self.password)
 
         # Assertions pour vérifier le comportement attendu
         self.assertEqual(len(result), 7)  # Vérifie le nombre de valeurs renvoyées
@@ -29,8 +42,8 @@ class MyTestClass(unittest.TestCase):
         self.assertIsInstance(
             result[2], str
         )  # Vérifie que le troisième élément est une chaîne de caractères
-        self.assertTrue(
-            isinstance(result[3], CaseInsensitiveDict)
+        self.assertIsInstance(
+            result[3], CaseInsensitiveDict
         )  # Vérifie que le quatrième élément est un CaseInsensitiveDict
         self.assertIsInstance(
             result[4], str
@@ -41,8 +54,10 @@ class MyTestClass(unittest.TestCase):
         self.assertIsNone(result[6])  # Vérifie que le septième élément est None
 
     def test_getMetaDateGN(self):
-        # Appel de la fonction à tester
-        date_publication = getMetaDateGN(self.user, self.password, self.uuid)
+        """
+        Appel de la fonction à tester
+        """
+        date_publication = get_meta_date_gn(self.user, self.password, self.uuid)
 
         self.assertIsNotNone(
             date_publication
