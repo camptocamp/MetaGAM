@@ -8,10 +8,6 @@
 
 """
 
-__author__ = "demande_sit@grenoblealpesmetropole.fr"
-__date__ = "2022-12-22"
-__copyright__ = "Copyright 2022, Service SIT - Amr HAMADEH"
-
 import unittest
 import requests
 
@@ -23,6 +19,10 @@ from meta_gam.Meta_GAM_dialog import MetaGAMDialog
 from meta_gam.Meta_GAM_Geonetwork import CATALOG
 
 from meta_gam.test.utilities import get_qgis_app
+
+__author__ = "demande_sit@grenoblealpesmetropole.fr"
+__date__ = "2022-12-22"
+__copyright__ = "Copyright 2022, Service SIT - Amr HAMADEH"
 
 QGIS_APP = get_qgis_app()
 

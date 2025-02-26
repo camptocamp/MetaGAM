@@ -18,6 +18,23 @@ Lors de la commande `git commit` le 'hook' est déclenché et effectue toutes le
 
 On peut désactiver cette vérification pour un commit avec la commande `git commit -n` (--no-verify). Si par exemple l'installation des outils n'est pas encore opérationnelle (exécutable pre-commit, docker, etc.) et le commit échoue.
 
+## vérification pylint
+
+test plus complet, avec un contexte non réalisable avec pylint:
+```
+docker compose run --rm -w /app/meta_gam qgis pylint .
+```
+- Par rapport à PEP8, la longuer de ligne est autorisée à 120 charactères.
+- Les retours à la ligne seront autorisés selon le style black (et PEP8) plutot que le W503 de PEP8
+  => on met un opérateur binaire juste après le retour à la ligne
+
+Pour vérifier expressément la conformité des noms de variable, on peut activer (--enable) certains check pylint:
+
+Exemple opur le check du snake_case pur:
+```
+docker compose run --rm -w /app/meta_gam qgis pylint -e invalid-name .
+```
+
 ## Tests
 
 par simplicité les tests dont appelés dans un environnement docker par:

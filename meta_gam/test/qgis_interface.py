@@ -13,6 +13,13 @@
 
 """
 
+import logging
+from typing import List
+from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal, QSize
+from qgis.PyQt.QtWidgets import QDockWidget
+from qgis.core import QgsProject, QgsMapLayer
+from qgis.gui import QgsMapCanvas, QgsMessageBar
+
 __author__ = "tim@linfiniti.com"
 __revision__ = "$Format:%H$"
 __date__ = "10/01/2011"
@@ -21,13 +28,6 @@ __copyright__ = (
     "Copyright (c) 2011 German Carrillo, geotux_tuxman@linuxmail.org"
     "Copyright (c) 2014 Tim Sutton, tim@linfiniti.com"
 )
-
-import logging
-from typing import List
-from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal, QSize
-from qgis.PyQt.QtWidgets import QDockWidget
-from qgis.core import QgsProject, QgsMapLayer
-from qgis.gui import QgsMapCanvas, QgsMessageBar
 
 LOGGER = logging.getLogger("QGIS")
 
