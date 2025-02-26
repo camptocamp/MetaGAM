@@ -26,8 +26,6 @@ import os
 from PyQt5 import QtWidgets, uic
 from qgis.PyQt.QtSql import QSqlDatabase
 from qgis.core import QgsProject, QgsLayerTreeGroup, QgsLayerTreeLayer
-from qgis.core import *
-from qgis.PyQt import *
 from PyQt5.QtWidgets import QMessageBox
 
 FORM_CLASS, _ = uic.loadUiType(

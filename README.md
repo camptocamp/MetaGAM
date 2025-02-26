@@ -19,3 +19,55 @@ On peut désactiver cette vérification pour un commit avec la commande `git com
 ```
 docker compose up
 ```
+
+Au premier démarrage, geonetwork met un certain temps pour s'initialiser, il faut rester patient.
+
+# Configuration QGIS
+
+## Créer la connexion à la DB
+
+Pour utiliser la docker compo de développement, il faut créer une connextion à la base de données dev.
+
+- Aller dans Couche->Gestionnaire des sources de données
+- Sélectionner PostgreSQL
+- Cliquer sur Nouveau
+
+Nom: DB (sans importance)
+Service: bd_prod (ce service est pré-renseigné dans le docker container via le fichier `pg_service.conf`
+
+Tester puis OK
+
+Il est désormais possible d'ouvrir des couches dans DB->urba_plui_public
+
+## Activer plugin
+
+Les volumes de la compo docker ont déjà rendu accessible le code source du plugin dans le bon dossier.
+
+Il suffit maintenant d'activer le plugin:
+Extensions ->Installer/Gérer les extensions
+Aller dans l'onglet Installées
+Cocher MetaGAM
+
+Maintenant les 2 icones MetaGAM devraient apparaitre dans la barre d'outils
+
+## Utilisation plugin
+
+Workflow pour tester le bon fonctionnement du plugin:
+
+- Rajouter des couches depuis le schéma urba_plui_public
+- Ouvrir le plugin
+- Auto-Remplir les métadonnées
+- mot de passe "geonetwork"
+- compléter des métadonnées
+- Cliquer sur le bouton Sauvegarder les modifications
+- Cocher des métadonnées à publier
+- Aller sur l'onglet "Pulication Geonetwork"
+  - Nom-utilisateur: admin
+  - Mot de pass: admin
+  - Cliquer sur Connexion
+- En cas d'absence d'erreur cliquer sur Envoi
+
+## Consultation GeoNetwork
+
+Par défaut, le portail geonetwork est accessible en local à l'adresse: http://localhost:8080/geonetwork
+Les métadonnées exporteées au préalable devraient maintenant être accessibles dans le catalogue GeoNetwork. Y compris une icone et l'étendue de la couche.

@@ -1,0 +1,27 @@
+# when the disk is almost full (95% by default) elastic serch locks write operations to indexes
+# if a regular volume is mounted with docker compose, the host system's disk usage is shown to elastic
+# as a workaround for full disks; it is possible to create a disk image in a local file, then
+# mount this file into the container via a loopback device.
+
+# # create disk image
+# allocate -l 200M ../elastic_disk.raw
+# # create file system
+# mkfs.ext4 ../elastic_disk.raw
+# # create loop device
+# sudo losetup -f --show ../elastic_disk.raw
+# # > /dev/loop24
+
+# the this loopback block device can be used in the docker override file...
+# the elastic search system sees only this file system (200MB) with a lower usage watermark
+
+volumes:
+  esdata_quota:
+    driver: local
+    driver_opts:
+      type: ext4
+      device: /dev/loop28
+
+services:
+  elasticsearch:
+    volumes:
+      - esdata_quota:/usr/share/elasticsearch/data
