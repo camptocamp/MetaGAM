@@ -29,6 +29,11 @@ import json
 import xml.etree.ElementTree as ET
 
 
+CATALOG = os.environ.get(
+    "GN_URL", "https://geonetwork.grenoblealpesmetropole.fr/geonetwork"
+)
+
+
 def connexionGeonetwork(user, password):
     """_summary_
 
@@ -47,9 +52,6 @@ def connexionGeonetwork(user, password):
         password(str): le mot de passe utilisé pour se connecter.
         group(int): le groupe d'utilisateurs auquel appartient l'utilisateur connecté, ou None si aucun groupe n'a été trouvé
     """
-    CATALOG = os.environ.get(
-        "GN_URL", "https://geonetwork.grenoblealpesmetropole.fr/geonetwork"
-    )
     response = requests.post(CATALOG + "/srv/eng/info?type=me")
     current_file_path = os.path.realpath(__file__)
     temp_file = os.path.join(os.path.dirname(current_file_path), "temp")

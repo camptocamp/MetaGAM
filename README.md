@@ -2,7 +2,11 @@
 
 Plugin QGIS "maison" qui permet de transférer les métadonnées au format XML, depuis des informations en base de données (`sit_hydre.gest_bdd_rel_objets_thematique`) et/ou dans des projets QGIS spécifiques (remplissage de l'onglet "métadonnées" dans les propriétés de la couche), vers un geonetwork en utilisant l'API.
 
-# Vérification pre-commit
+# Développement
+
+Dans cette partie, il y a quelques conseils pour le développement sous linux et docker
+
+## Vérification pre-commit automatique au moment du commit
 
 pour garantir la qualité du code source, certaines vérifications sont effectuées systématiquement avant chaque commit:
 
@@ -13,6 +17,17 @@ pour garantir la qualité du code source, certaines vérifications sont effectu�
 Lors de la commande `git commit` le 'hook' est déclenché et effectue toutes les vérifications.
 
 On peut désactiver cette vérification pour un commit avec la commande `git commit -n` (--no-verify). Si par exemple l'installation des outils n'est pas encore opérationnelle (exécutable pre-commit, docker, etc.) et le commit échoue.
+
+## Tests
+
+par simplicité les tests dont appelés dans un environnement docker par:
+
+```
+docker compose run --rm -w /app/meta_gam qgis make test
+```
+
+Actuellement, il n'y a pas de runner dédié metagam en CI, donc ces tests doivent être effectués en local.
+
 
 # Lancement docker
 
