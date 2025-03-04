@@ -27,6 +27,7 @@ import os
 import re
 
 import psycopg2
+from psycopg2.extras import RealDictCursor
 import requests
 from qgis.core import (
     QgsBox3d,
@@ -245,14 +246,9 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         get contact from database
         """
         connexion = self.connexion_postgresql()[1]
-        cur = connexion.cursor()
-        cur.execute("SELECT * FROM sit_hydre.gest_bdd_contact_referents")
-        rows = cur.fetchall()
-        columns = [desc[0] for desc in cur.description]
-        json_list = []
-        for row in rows:
-            json_list.append(dict(zip(columns, row)))
-        return json_list
+        with connexion.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM sit_hydre.gest_bdd_contact_referents")
+            return cur.fetchall()
 
     def get_thematique_tab(self):
         """
@@ -395,12 +391,18 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                                         keywords.insert(0, keyword)
                             elif keywords is None and theme_keywords is not None:
                                 keywords = theme_keywords
+                            if len(contact_id) == 0:
+                                new_contact = self.create_default_DB_contact(
+                                    id_thematique
+                                )
+                                tab_contacts = [new_contact]
+                                contact_id = [new_contact.get("id")]
                             for obj_contact in tab_contacts:
-                                if contact_id != []:
-                                    if contact_id[0] == obj_contact.get("id"):
-                                        contact_nom = obj_contact.get("nom")
-                                        contact_prenom = obj_contact.get("prenom")
-                                        contact_mail = obj_contact.get("mail")
+                                if contact_id[0] == obj_contact.get("id"):
+                                    contact_nom = obj_contact.get("nom")
+                                    contact_prenom = obj_contact.get("prenom")
+                                    contact_mail = obj_contact.get("mail")
+
                 if len(self.layers_niveau) > 0:
                     if self.layers_niveau.get(layer_projet_name) == 1:
                         meta_contact = QgsLayerMetadata.Contact()
@@ -1191,6 +1193,29 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                 connexion.commit()
         cur.close()
         connexion.close()
+
+    def create_default_DB_contact(self, thematique_id):
+        print("Creating default contact data in DB.")
+        connexion = self.connexion_postgresql()[1]
+        with connexion.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "INSERT INTO sit_hydre.gest_bdd_contact_referents "
+                "(prenom, nom, mail) "
+                "VALUES ("
+                "'Service d''information territorial', "
+                "'(SIT)', "
+                "'demande_sit@grenoblealpesmetropole.fr'"
+                ") RETURNING *"
+            )
+            new_item = cur.fetchone()
+            cur.execute(
+                "INSERT INTO sit_hydre.gest_bdd_rel_thematique_contact_referents "
+                "(thematique_id, contact_referent_id, type_ref) "
+                f"VALUES ('{thematique_id}', '{new_item['id']}', '')"
+            )
+        connexion.commit()
+        connexion.close()
+        return new_item
 
     def get_tree_INSPIRE_val(self, layer_name):
         """_summary_
