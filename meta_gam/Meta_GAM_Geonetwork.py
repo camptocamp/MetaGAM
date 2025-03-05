@@ -31,9 +31,14 @@ from requests.structures import CaseInsensitiveDict
 
 GN_TIMEOUT = 30
 
-CATALOG = os.environ.get(
-    "GN_URL", "https://geonetwork.grenoblealpesmetropole.fr/geonetwork"
-)
+
+def get_catalog():
+    return os.environ.get(
+        "GN_URL", "https://geonetwork.grenoblealpesmetropole.fr/geonetwork"
+    )
+
+
+CATALOG = get_catalog()
 
 
 def connexion_geonetwork(user, password):
@@ -63,7 +68,9 @@ def connexion_geonetwork(user, password):
         group(int): le groupe d'utilisateurs auquel appartient l'utilisateur
                     connecté, ou None si aucun groupe n'a été trouvé
     """
-    response = requests.post(CATALOG + "/srv/eng/info?type=me", timeout=GN_TIMEOUT)
+    response = requests.post(
+        get_catalog() + "/srv/eng/info?type=me", timeout=GN_TIMEOUT
+    )
     current_file_path = os.path.realpath(__file__)
     temp_file = os.path.join(os.path.dirname(current_file_path), "temp")
     if not os.path.exists(temp_file):
@@ -79,14 +86,14 @@ def connexion_geonetwork(user, password):
     headers["Accept"] = "application/json"
     headers["X-XSRF-TOKEN"] = token
     response_author = requests.get(
-        CATALOG + "/srv/eng/info?type=me",
+        get_catalog() + "/srv/eng/info?type=me",
         headers=headers,
         cookies={"XSRF-TOKEN": token},
         auth=(user, password),
         timeout=GN_TIMEOUT,
     )
     response_info = requests.get(
-        CATALOG + "/srv/api/me",
+        get_catalog() + "/srv/api/me",
         headers=headers,
         cookies={"XSRF-TOKEN": token},
         auth=(user, password),
@@ -108,7 +115,7 @@ def connexion_geonetwork(user, password):
     else:
         res = False
         group = None
-    return (res, CATALOG, token, headers, user, password, group)
+    return (res, get_catalog(), token, headers, user, password, group)
 
 
 def post_meta_gn(user, password):
