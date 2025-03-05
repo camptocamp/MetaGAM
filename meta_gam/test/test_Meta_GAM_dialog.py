@@ -43,6 +43,7 @@ class MetaGAMDialogTest(unittest.TestCase):
 
     def tearDown(self):
         """Runs after each test."""
+        self.dialog.mgGN.close()
         self.dialog = None
 
     @attr("localDB")

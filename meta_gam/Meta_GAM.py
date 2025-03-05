@@ -189,6 +189,8 @@ class MetaGAM:
             self.iface.removePluginMenu(self.tr("&MetaGAM"), action)
             self.iface.removePluginMenu(self.tr("&AdminMenu"), action)
             self.iface.removeToolBarIcon(action)
+        if self.dlg1 is not None:
+            self.dlg1.mgGN.close()
         qCleanupResources()
 
     def run(self):
