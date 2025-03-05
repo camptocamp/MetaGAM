@@ -2,6 +2,25 @@
 
 Plugin QGIS "maison" qui permet de transférer les métadonnées au format XML, depuis des informations en base de données (`sit_hydre.gest_bdd_rel_objets_thematique`) et/ou dans des projets QGIS spécifiques (remplissage de l'onglet "métadonnées" dans les propriétés de la couche), vers un geonetwork en utilisant l'API.
 
+# Installation
+
+## Configuration
+
+la connexion DB s'appuie sur le service bd_prod. Il faut donc définir ce service dans le fichier `pg_service.conf`
+
+Ce fichier aura le contenu suivant:
+```
+[bd_prod]
+host=db_server.internal.com
+port=5432
+#sslmode=require
+user=geonetwork
+password=geonetwork
+dbname=sig
+```
+
+On peut inclure ou non le mot de passe dans ce fichier. Si le mot de passe se trouve dans le fichier de définition de service, le bouton "Auto-Remplir" ne demande pas de saisie de mot de passe de BD. Si le mot de passe n'est pas défini, il faut le saisir une fois.
+
 # Développement
 
 Dans cette partie, il y a quelques conseils pour le développement sous linux et docker

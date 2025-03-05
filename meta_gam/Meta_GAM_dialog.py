@@ -153,13 +153,20 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             bool: True if the connection to PostgreSQL is successful, False otherwise.
         """
 
-        if self.connexion_postgresql()[0]:
-            return True
+        try:
+            success, _ = self.connexion_postgresql(True)
+            if success:
+                return True
+        except psycopg2.Error:
+            pass
         # Créer une instance de QDialog
         dialog = QDialog()
 
         # Créer un label et un champ de texte
-        label = QLabel("Veuillez saisir uniquement votre mot de passe:")
+        label = QLabel(
+            "Veuillez saisir votre mot de passe :\n"
+            "(Accès à la base de donnée via le service bd_prod)"
+        )
         password_edit = QLineEdit()
         password_edit.setEchoMode(QLineEdit.Password)  # Masquer les caractères saisis
 
@@ -184,7 +191,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             return self.connexion_postgresql_password()
         return False
 
-    def connexion_postgresql(self):
+    def connexion_postgresql(self, reraise=False):
         """
         Establishes a connection to a PostgreSQL database using the provided service name and user password.
         Returns:
@@ -199,8 +206,11 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             connexion = psycopg2.connect(service="bd_prod", password=self.UserPassword)
             return True, connexion
         except psycopg2.Error as e:
-            QMessageBox.critical(self, "Erreur", str(e), QMessageBox.Ok)
-            return False, None
+            if reraise:
+                raise e
+            else:
+                QMessageBox.critical(self, "Erreur", str(e), QMessageBox.Ok)
+                return False, None
 
     def get_metadata_gestion_tab(self):
         """
