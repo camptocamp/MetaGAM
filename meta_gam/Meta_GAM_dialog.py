@@ -318,11 +318,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             tab_thematique = self.get_thematique_tab()
             # On commence à remplir la fiche des metadonnées
             project = QgsProject.instance()
-            for (
-                layer
-            ) in (
-                project.mapLayers().values()
-            ):  # On parcours les couches du projets une aprés l'autre
+            for layer in project.mapLayers().values():
+                # On parcourt les couches du projets une aprés l'autre
                 layer_meta = layer.metadata()  # On récupere la fiche de metadata
                 # Recuperer nom du schema de la couche
                 uri = QgsDataSourceUri(layer.dataProvider().dataSourceUri())

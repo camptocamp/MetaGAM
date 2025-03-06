@@ -130,16 +130,12 @@ def transform_qmd_to_xml(layer_name):
     """
     input_qmd_file = save_temp_qmd(layer_name)
     xslt_file = ISO_file_path + "/qgis-to-iso19139.xsl"
-    in_dom = lxml.parse(input_qmd_file)
-    xslt = lxml.parse(xslt_file)
+    parser = lxml.XMLParser(remove_blank_text=True)
+    in_dom = lxml.parse(input_qmd_file, parser=parser)
+    xslt = lxml.parse(xslt_file, parser=parser)
     transform = lxml.XSLT(xslt)
     out_dom = transform(in_dom)
-    s = (
-        '<?xml version="1.0" encoding="UTF-8"?>\n'
-        + lxml.tostring(out_dom, pretty_print=True).decode()
-    )
-    dom = minidom.parseString(s)
-    return dom.toprettyxml(indent="  ")
+    return lxml.tostring(out_dom)
 
 
 def add_thumbnail(uuid, layer_name):
@@ -273,6 +269,11 @@ def create_zip(
         meta_xml = insert_contact_xml(meta_xml)
         if date_publication is not None:
             meta_xml = insert_date_publication(meta_xml, date_publication)
+
+        # pretty print XML
+        dom = minidom.parseString(b'<?xml version="1.0" encoding="UTF-8"?>' + meta_xml)
+        meta_xml = dom.toprettyxml(indent="  ")
+
         z.writestr(
             os.path.join(uuid, os.path.join("metadata", "metadata.xml")), meta_xml
         )
@@ -355,8 +356,8 @@ def insert_inspire_xml(xml_string, keywords):
             gco_string = ET.SubElement(gmd_keyword, "gco:CharacterString")
             gco_string.text = keyword
 
-        xml_string = ET.tostring(root, encoding="utf-8", method="xml")
-    return minidom.parseString(xml_string).toprettyxml(indent="  ")
+        return ET.tostring(root, encoding="utf-8", method="xml")
+    return xml_string
 
 
 def insert_layer_type(xml_string, layer_type):
@@ -399,8 +400,8 @@ def insert_layer_type(xml_string, layer_type):
         )
         md_spatial_representation_type_code.attrib["codeListValue"] = layer_type
 
-        xml_string = ET.tostring(root, encoding="utf-8", method="xml")
-    return minidom.parseString(xml_string).toprettyxml(indent="  ")
+        return ET.tostring(root, encoding="utf-8", method="xml")
+    return xml_string
 
 
 def insert_layer_denominateur(xml_string, layer_denominateur):
@@ -437,9 +438,7 @@ def insert_layer_denominateur(xml_string, layer_denominateur):
         if integer_element is not None:
             integer_element.text = str(layer_denominateur)
 
-    xml_string = ET.tostring(root, encoding="utf-8", method="xml")
-
-    return minidom.parseString(xml_string).toprettyxml(indent="  ")
+    return ET.tostring(root, encoding="utf-8", method="xml")
 
 
 def insert_date_publication(xml_string, date_publication):
@@ -471,10 +470,7 @@ def insert_date_publication(xml_string, date_publication):
     for date_element in date_elements:
         date_element.text = str(date_publication)
 
-    xml_string = ET.tostring(root, encoding="utf-8", method="xml")
-    xml_formatted = xml_string.decode()
-
-    return xml_formatted
+    return ET.tostring(root, encoding="utf-8", method="xml")
 
 
 def update_file_identifier(xml_string, meta_id):
@@ -506,12 +502,7 @@ def update_file_identifier(xml_string, meta_id):
     if file_name_element is not None:
         file_name_element.text = meta_id + ".png"
 
-    updated_xml_string = ET.tostring(tree, encoding="utf-8", method="xml")
-    prettified_xml_string = minidom.parseString(updated_xml_string).toprettyxml(
-        indent="  "
-    )
-
-    return prettified_xml_string
+    return ET.tostring(tree, encoding="utf-8", method="xml")
 
 
 def insert_contact_xml(xml_string):
@@ -541,11 +532,10 @@ def insert_contact_xml(xml_string):
     )
     if point_of_contact is not None and descriptive_keywords_parent is not None:
         # Créer un élément à partir du bloc XML à insérer
-        new_element = ET.fromstring(new_xml_block)
+        new_element = ET.fromstring(ET.canonicalize(new_xml_block, strip_text=True))
 
         # Insérer le nouvel élément entre les balises </gmd:pointOfContact> et <gmd:descriptiveKeywords id="INSPIRE">
         index = list(descriptive_keywords_parent).index(point_of_contact) + 1
         descriptive_keywords_parent.insert(index, new_element)
 
-    xml_string = ET.tostring(root, encoding="utf-8", method="xml")
-    return minidom.parseString(xml_string).toprettyxml(indent="  ")
+    return ET.tostring(root, encoding="utf-8", method="xml")
