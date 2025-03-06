@@ -53,7 +53,7 @@ class MetaGamGeonetwork(requests.Session):
 
     def __init__(self, verifytls=True):
         super().__init__()
-        self.verifytls = verifytls
+        self.verify = verifytls
         self.connected = False
         self.group = None
         self.token = None
@@ -104,9 +104,8 @@ class MetaGamGeonetwork(requests.Session):
         return super().request(
             *args,
             **{
-                **kwargs,
-                "verify": self.verifytls,
                 "timeout": GN_TIMEOUT,
+                **kwargs,
             },
         )
 
@@ -121,47 +120,34 @@ class MetaGamGeonetwork(requests.Session):
         déja alors elle sera écrasée par la nouvelle fiche).
         """
 
+        success_results = {}
         current_file_path = os.path.abspath(__file__)
         temp_file = os.path.join(os.path.dirname(current_file_path), "temp")
-        if self.group is None:
-            for filename in os.listdir(temp_file):
-                os.path.join(temp_file, filename)
-                if filename.endswith(".zip"):
-                    with open(temp_file + "/" + filename, "rb") as file:
-                        file_obj = file.read()
-                        file_basename = os.path.basename(filename)
-                        file_to_upload = {"file": (str(file_basename), file_obj)}
-                        finfo = {"fullPath": filename}
-                        _ = self.post(
-                            self.CATALOG
-                            + "/srv/api/records?metadataType=METADATA"
-                            + "&uuidProcessing=OVERWRITE&transformWith=_none_",
-                            files=file_to_upload,
-                            data=finfo,
-                        )
-                else:
-                    user_group = str(self.group)
-                    current_file_path = os.path.abspath(__file__)
-                    temp_file = os.path.join(os.path.dirname(current_file_path), "temp")
-                    for filename in os.listdir(temp_file):
-                        os.path.join(temp_file, filename)
-                        if filename.endswith(".zip"):
-                            with open(temp_file + "/" + filename, "rb") as file:
-                                file_obj = file.read()
-                                file_basename = os.path.basename(filename)
-                                file_to_upload = {
-                                    "file": (str(file_basename), file_obj)
-                                }
-                                finfo = {"fullPath": filename}
-                                _ = self.post(
-                                    self.CATALOG
-                                    + "/srv/api/records?metadataType=METADATA"
-                                    + "&uuidProcessing=OVERWRITE&group="
-                                    + user_group
-                                    + "&transformWith=_none_",
-                                    files=file_to_upload,
-                                    data=finfo,
-                                )
+        post_url = (
+            f"{self.CATALOG}/srv/api/records?metadataType=METADATA"
+            "&uuidProcessing=OVERWRITE&transformWith=_none_"
+        )
+        if self.group is not None:
+            post_url += f"&group={self.group}"
+
+        for filename in os.listdir(temp_file):
+            os.path.join(temp_file, filename)
+            uuid, ext = os.path.splitext(filename)
+            if ext == ".zip":
+                with open(temp_file + "/" + filename, "rb") as file:
+                    file_basename = os.path.basename(filename)
+                    file_to_upload = {"file": (str(file_basename), file)}
+                    finfo = {"fullPath": filename}
+                    response = self.post(
+                        post_url,
+                        files=file_to_upload,
+                        data=finfo,
+                    )
+                    success_results[uuid] = {
+                        "status_code": response.status_code,
+                        "detail": response.json(),
+                    }
+        return success_results
 
     def get_meta_date_gn(self, uuid):
         """_summary_

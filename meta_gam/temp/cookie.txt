@@ -1,1 +1,0 @@
-<RequestsCookieJar[<Cookie XSRF-TOKEN=66071657-66ab-4388-be8d-668ddfa1e172 for geonetwork.grenoblealpesmetropole.fr/geonetwork>]>

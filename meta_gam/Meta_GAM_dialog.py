@@ -1318,7 +1318,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                     "Username ou mot de passe incorrect!!", Qgis.Critical
                 )
 
-    def populate_tab_gn(self):
+    def populate_tab_gn(self, success_dict):
         """_summary_
 
         Fonction qui va gérérer l'affichage des fiches qui sont à envoyer
@@ -1327,12 +1327,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         """
         connexion = self.connexion_postgresql()[1]
         cur = connexion.cursor()
-        catalog_gn = (
-            os.environ.get(
-                "GN_URL", "https://geonetwork.grenoblealpesmetropole.fr/geonetwork"
-            )
-            + "/srv/fre/catalog.search#/metadata/"
-        )
+        catalog_gn = self.mgGN.CATALOG + "/srv/fre/catalog.search#/metadata/"
         self.model = QStandardItemModel(
             0, 2
         )  # pylint: disable=attribute-defined-outside-init
@@ -1344,30 +1339,43 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             layer_name = layer.name()
             layer_meta = layer.metadata()
             uuid = layer_meta.identifier()
-            # print('uuid : %',uuid)
             meta_id = self.get_meta_ID(uuid)
             if self.tree_checkbox_status is not None:
                 if self.tree_checkbox_status.get(i):
                     meta_id = meta_id[0]
                     item1 = QStandardItem(layer_name)
-                    item2 = QStandardItem(catalog_gn + meta_id)
-                    item2.setForeground(QBrush(QColor("blue"), style=Qt.SolidPattern))
-                    item2.setTextAlignment(Qt.AlignCenter)
-                    item2.setSelectable(True)
-                    item2.setEditable(False)
-                    item2.setData(
-                        catalog_gn + meta_id, Qt.UserRole
-                    )  # Stocke l'URL dans les données utilisateur
-                    self.model.appendRow([item1, item2])
-                    meta_lien = catalog_gn + meta_id
-                    update_meta_link = (
-                        "UPDATE sit_hydre.gest_bdd_rel_objets_thematique "
-                        f"SET metadonnees_lien = '{meta_lien}', "
-                        f"metadonnees_titre = '{layer_name}' "
-                        f"WHERE metadonnees_id = '{meta_id}'"
+                    if success_dict[meta_id]["status_code"] < 400:
+                        item2 = QStandardItem(catalog_gn + meta_id)
+                        item2.setForeground(
+                            QBrush(QColor("blue"), style=Qt.SolidPattern)
+                        )
+                        item2.setTextAlignment(Qt.AlignCenter)
+                        item2.setSelectable(True)
+                        item2.setData(
+                            catalog_gn + meta_id, Qt.UserRole
+                        )  # Stocke l'URL dans les données utilisateur
+                        meta_lien = catalog_gn + meta_id
+                        update_meta_link = (
+                            "UPDATE sit_hydre.gest_bdd_rel_objets_thematique "
+                            f"SET metadonnees_lien = '{meta_lien}', "
+                            f"metadonnees_titre = '{layer_name}' "
+                            f"WHERE metadonnees_id = '{meta_id}'"
+                        )
+                        cur.execute(update_meta_link)
+                        connexion.commit()
+                    else:
+                        item2 = QStandardItem(
+                            f"Error: {success_dict[meta_id]['status_code']}"
+                        )
+                        item2.setForeground(
+                            QBrush(QColor("red"), style=Qt.SolidPattern)
+                        )
+                    item2.setToolTip(
+                        f"[{success_dict[meta_id]['status_code']}] "
+                        f"{success_dict[meta_id]['detail']}"
                     )
-                    cur.execute(update_meta_link)
-                    connexion.commit()
+                    item2.setEditable(False)
+                    self.model.appendRow([item1, item2])
         cur.close()
         connexion.close()
         self.tableGN.setModel(self.model)
@@ -1510,8 +1518,9 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         remove_all_zip_files()
         self.add_INSPIRE_to_xml()
         clean_temp()
-        self.mgGN.post_meta_gn()
+        success_dict = self.mgGN.post_meta_gn()
         remove_all_zip_files()
+        return success_dict
 
     def update_progressbar(self):
         """_summary_
@@ -1522,8 +1531,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         self.progressBar.setRange(0, 100)
         self.progressBar.setValue(0)
         if self.check_tree_title():
-            self.launch_meta_post()
-            self.populate_tab_gn()
+            success_dict = self.launch_meta_post()
+            self.populate_tab_gn(success_dict)
             self.progressBar.setValue(100)
         else:
             self.push_message_bar(

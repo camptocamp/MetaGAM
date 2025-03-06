@@ -49,7 +49,7 @@ docker compose run --rm -w /app/meta_gam qgis pylint .
 
 Pour vérifier expressément la conformité des noms de variable, on peut activer (--enable) certains check pylint:
 
-Exemple opur le check du snake_case pur:
+Exemple pour le check du snake_case pur:
 ```
 docker compose run --rm -w /app/meta_gam qgis pylint -e invalid-name .
 ```
