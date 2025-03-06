@@ -286,11 +286,15 @@ def insert_inspire_xml(xml_string, keywords):
 
     ET.register_namespace("gmd", GMD_URL)
     ET.register_namespace("gco", GCO_URL)
-    key = "{http://www.isotc211.org/2005/gmd}descriptiveKeywords"
     descriptive_keywords = [
         el
-        for el in root.findall(".//" + key, namespaces)
-        if el.attrib.get("id") == "INSPIRE"
+        for el in root.findall(".//gmd:descriptiveKeywords", namespaces)
+        if el.find(
+            "gmd:MD_Keywords/gmd:thesaurusName/gmd:CI_Citation/"
+            "gmd:title[gco:CharacterString='GEMET - INSPIRE themes, version 1.0']",
+            namespaces,
+        )
+        is not None
     ]
 
     if descriptive_keywords:
