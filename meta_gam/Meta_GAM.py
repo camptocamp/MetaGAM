@@ -63,6 +63,11 @@ class MetaGAM:
             self.translator.load(locale_path)
             QCoreApplication.installTranslator(self.translator)
 
+        # Make sur temp path exists
+        temp_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "temp")
+        if not os.path.exists(temp_file):
+            os.makedirs(temp_file)
+
         # Declare instance attributes
         self.actions = []
         self.menu = self.tr("&MetaGAM")

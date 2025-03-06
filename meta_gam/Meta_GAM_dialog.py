@@ -24,6 +24,7 @@
 
 import json
 import os
+from glob import glob
 import re
 
 import psycopg2
@@ -1518,7 +1519,14 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         remove_all_zip_files()
         self.add_INSPIRE_to_xml()
         clean_temp()
-        success_dict = self.mgGN.post_meta_gn()
+        success_dict = {}
+        current_file_path = os.path.abspath(__file__)
+        temp_file = os.path.join(os.path.dirname(current_file_path), "temp")
+        filelist = glob(f"{temp_file}/*.zip")
+        for i, filename in enumerate(filelist):
+            uuid, _ = os.path.splitext(os.path.basename(filename))
+            self.progressBar.setValue(int(100 * i / len(filelist)))
+            success_dict[uuid] = self.mgGN.post_meta_gn(filename)
         remove_all_zip_files()
         return success_dict
 

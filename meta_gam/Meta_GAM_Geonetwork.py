@@ -109,7 +109,7 @@ class MetaGamGeonetwork(requests.Session):
             },
         )
 
-    def post_meta_gn(self):
+    def post_meta_gn(self, filepath):
         """_summary_
 
         Cette fonction  permet de poster des fichiers de métadonnées
@@ -120,9 +120,6 @@ class MetaGamGeonetwork(requests.Session):
         déja alors elle sera écrasée par la nouvelle fiche).
         """
 
-        success_results = {}
-        current_file_path = os.path.abspath(__file__)
-        temp_file = os.path.join(os.path.dirname(current_file_path), "temp")
         post_url = (
             f"{self.CATALOG}/srv/api/records?metadataType=METADATA"
             "&uuidProcessing=OVERWRITE&transformWith=_none_"
@@ -130,24 +127,19 @@ class MetaGamGeonetwork(requests.Session):
         if self.group is not None:
             post_url += f"&group={self.group}"
 
-        for filename in os.listdir(temp_file):
-            os.path.join(temp_file, filename)
-            uuid, ext = os.path.splitext(filename)
-            if ext == ".zip":
-                with open(temp_file + "/" + filename, "rb") as file:
-                    file_basename = os.path.basename(filename)
-                    file_to_upload = {"file": (str(file_basename), file)}
-                    finfo = {"fullPath": filename}
-                    response = self.post(
-                        post_url,
-                        files=file_to_upload,
-                        data=finfo,
-                    )
-                    success_results[uuid] = {
-                        "status_code": response.status_code,
-                        "detail": response.json(),
-                    }
-        return success_results
+        filename = os.path.basename(filepath)
+        with open(filepath, "rb") as file:
+            file_to_upload = {"file": (str(filename), file)}
+            finfo = {"fullPath": filepath}
+            response = self.post(
+                post_url,
+                files=file_to_upload,
+                data=finfo,
+            )
+            return {
+                "status_code": response.status_code,
+                "detail": response.json(),
+            }
 
     def get_meta_date_gn(self, uuid):
         """_summary_
