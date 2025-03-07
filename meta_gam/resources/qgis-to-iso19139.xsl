@@ -78,7 +78,7 @@
 
             <gmd:dateStamp>
                 <gco:DateTime>
-                    <xsl:value-of select="substring(date:date(), 1, 10)"/>
+                    <xsl:value-of select="date:date-time()"/>
                 </gco:DateTime>
             </gmd:dateStamp>
 
