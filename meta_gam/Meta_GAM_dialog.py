@@ -136,10 +136,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         self.labelGeo.setOpenExternalLinks(True)
         self.pbAutoMeta.clicked.connect(self.auto_fill_meta)
         self.pb_meta_cancel.clicked.connect(self.close_plugin)
-        self.pb_meta_apply.clicked.connect(self.get_tree_checkbox_status)
-        self.pb_meta_apply.clicked.connect(self.update_meta)
-        self.pb_meta_apply.clicked.connect(self.tree_layers_color)
-        self.pb_meta_apply.clicked.connect(self.set_tree_checkbox_status)
+        self.pb_meta_apply.clicked.connect(self.click_apply)
         self.pbConnexion.clicked.connect(self.check_connexion_gn)
         self.pbPost.clicked.connect(self.update_progressbar)
         self.pbCancel.clicked.connect(self.close_plugin)
@@ -973,43 +970,48 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                                 attribut.addChild(item_abstract)
                                 tree.setItemWidget(item_abstract, 3, value_abstract)
 
-    def update_meta(self):
+    def click_apply(self):
         """
         update metadata
         """
+        self.get_tree_checkbox_status()
         if self.treeWidget.topLevelItemCount() == 0:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
-            msg.setText("Vous n'avez pas lancer l'Auto-remplissage encore!")
+            msg.setText("Vous n'avez pas encore lancé l'auto-remplissage !")
             msg.setWindowTitle("Erreur!!")
             msg.exec_()
         else:
-            dict_inspire = None
-            parent = self.treeWidget.invisibleRootItem()
-            project = QgsProject.instance()
-            for layer in project.mapLayers().values():
-                layer_meta = layer.metadata()
-                layer_name = layer.name()
-                if len(self.layers_niveau) > 0:
-                    if self.layers_niveau.get(layer_name) == 1:
-                        source = str(layer.source())
-                        start = source.find("table=") + len("table=")
-                        end = source.find(".")
-                        layer_schema = source[start:end]
-                        layer_schema = layer_schema[1:-1]
-                        self.get_new_tree_val(
-                            parent, layer_name, layer_meta, layer_schema
-                        )
-                        layer.setMetadata(layer_meta)
-                        dict_inspire = self.dict_tree_INSPIRE_val()
-            self.layers_tree()
-            self.set_tree()
-            self.set_tree_INSPIRE_new_val(dict_inspire)
+            self.update_meta()
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Information)
             msg.setText("Vos fiches sont à jour!")
             msg.setWindowTitle("Info!")
             msg.exec_()
+
+        self.tree_layers_color()
+        self.set_tree_checkbox_status()
+
+    def update_meta(self):
+        dict_inspire = None
+        parent = self.treeWidget.invisibleRootItem()
+        project = QgsProject.instance()
+        for layer in project.mapLayers().values():
+            layer_meta = layer.metadata()
+            layer_name = layer.name()
+            if len(self.layers_niveau) > 0:
+                if self.layers_niveau.get(layer_name) == 1:
+                    source = str(layer.source())
+                    start = source.find("table=") + len("table=")
+                    end = source.find(".")
+                    layer_schema = source[start:end]
+                    layer_schema = layer_schema[1:-1]
+                    self.get_new_tree_val(parent, layer_name, layer_meta, layer_schema)
+                    layer.setMetadata(layer_meta)
+                    dict_inspire = self.dict_tree_INSPIRE_val()
+        self.layers_tree()
+        self.set_tree()
+        self.set_tree_INSPIRE_new_val(dict_inspire)
 
     def get_new_tree_val(self, root, parent_text, metadata, layer_schema):
         """_summary_

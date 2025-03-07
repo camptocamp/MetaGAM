@@ -46,7 +46,9 @@ class MetaGAMDialogTest(unittest.TestCase):
             "srid=3945 type=Polygon checkPrimaryKeyUnicity='1' "
             'table="urba_plui_public"."plan_2_c2_inf_99_decheterie_surf" (geom)\''
         )
-        layer = QgsVectorLayer(uri.uri(), "test", "postgres")
+        layer = QgsVectorLayer(
+            uri.uri(), "plan_2_c2_inf_99_decheterie_surf", "postgres"
+        )
         QgsProject.instance().addMapLayer(layer)
 
         root = self.dialog.treeWidget.invisibleRootItem()
@@ -54,6 +56,7 @@ class MetaGAMDialogTest(unittest.TestCase):
         self.dialog.pbAutoMeta.click()
         assert root.childCount() == 1
         self.assertTrue(self.dialog.connexion_postgresql()[0])
+        QgsProject.instance().removeMapLayer(layer)
 
     def test_publish(self):
         """Test we can publish the data."""
@@ -63,23 +66,37 @@ class MetaGAMDialogTest(unittest.TestCase):
             "srid=3945 type=Polygon checkPrimaryKeyUnicity='1' table=\"urba_plui_pu"
             'blic"."plan_2_c2_inf_99_decheterie_surf" (geom)\''
         )
-        layer = QgsVectorLayer(uri.uri(), "test", "postgres")
+        layer = QgsVectorLayer(
+            uri.uri(), "plan_2_c2_inf_99_decheterie_surf", "postgres"
+        )
         QgsProject.instance().addMapLayer(layer)
 
         root = self.dialog.treeWidget.invisibleRootItem()
         assert root.childCount() == 0
         self.dialog.pbAutoMeta.click()
-        assert root.childCount() == 2
+        assert root.childCount() == 1
         assert self.dialog.check_tree_title()
         self.dialog.leUsername.setText("admin")
         self.dialog.lePassword.setText("admin")
         assert self.dialog.pbPost.isHidden()
-        self.dialog.pbConnexion.click()
-        assert not self.dialog.pbPost.isHidden()
+        abstract_treeitem = next(
+            root.child(0).child(i)
+            for i in range(root.child(0).childCount())
+            if root.child(0).child(i).text(2) == "Résumé de la couche"
+        )
+        self.dialog.treeWidget.itemWidget(abstract_treeitem, 3).setText(
+            "En quelques mots..."
+        )
+        self.dialog.update_meta()
         self.dialog.treeWidget.itemWidget(root.child(0), 0).setChecked(True)
         assert self.dialog.tableGN.model() is None
+        self.dialog.pbConnexion.click()
+        assert not self.dialog.pbPost.isHidden()
         self.dialog.pbPost.click()
         assert self.dialog.model.rowCount() == 1
+
+        QgsProject.instance().removeMapLayer(layer)
+
         url = self.dialog.model.data(self.dialog.model.index(0, 1))
         uuid = "50e3a04d-4744-46a0-8a70-09da72860a3f"
         uuid = url.split("/")[-1]
@@ -98,6 +115,36 @@ class MetaGAMDialogTest(unittest.TestCase):
         )
         assert me.json()["profile"] == "Administrator"
         xsrf = ss.cookies.get("XSRF-TOKEN")
+
+        # query editor is necessary to enable validation
+        edit_form = ss.get(
+            CATALOG + "/srv/api/records/" + uuid + "/editor",
+            auth=("admin", "admin"),
+            headers={"X-XSRF-TOKEN": xsrf},
+            timeout=30,
+        )
+        assert edit_form.status_code == 200
+
+        validity = ss.put(
+            CATALOG + "/srv/api/records/" + uuid + "/validate/internal",
+            auth=("admin", "admin"),
+            headers={
+                "X-XSRF-TOKEN": xsrf,
+                "accept": "application/json",
+            },
+            timeout=30,
+        )
+        assert validity.status_code == 201
+        validation_errors = [
+            (p["title"], r)
+            for r in validity.json()["report"]
+            for p in r["patterns"]["pattern"]
+            for r in p["rules"]["rule"]
+            if r["type"] != "success"
+        ]
+        assert all(report["error"] == 0 for report in validity.json()["report"])
+        assert len(validation_errors) == 0
+
         deletion = ss.delete(
             CATALOG + "/srv/api/records/" + uuid,
             auth=("admin", "admin"),
