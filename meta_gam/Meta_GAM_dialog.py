@@ -550,6 +550,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         link_metro.url = " https://www.grenoblealpesmetropole.fr/"
                         link_metro.format = "HTTPS"
 
+                        if licence is not None:
+                            layer_meta.setLicenses([licence])
                         list_links = [link_metro]
                         if (
                             layer_meta.licenses() != []
@@ -560,7 +562,10 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             link_wms.type = "OGC-WMS Capabilities service (ver 1.3.0)"
                             link_wms.description = layer_name
                             link_wms.url = (
-                                GAM_GEOFLUX_URL + layer_schema + "/ows?SERVICE=WMS&"
+                                GAM_GEOFLUX_URL
+                                + "/"
+                                + layer_schema
+                                + "/ows?SERVICE=WMS&"
                             )
                             link_wms.format = "WMS"
 
@@ -570,6 +575,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             link_kml.description = layer_name
                             link_kml.url = (
                                 GAM_GEOFLUX_URL
+                                + "/"
                                 + layer_schema
                                 + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
                                 + layer_schema
@@ -585,6 +591,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             link_geojson.description = layer_name
                             link_geojson.url = (
                                 GAM_GEOFLUX_URL
+                                + "/"
                                 + layer_schema
                                 + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
                                 + layer_schema
@@ -612,9 +619,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                                 list_links.append(link_geojson)
                             if response_wms.status_code == 200:
                                 list_links.append(link_wms)
-                            layer_meta.setLinks(list_links)
-                        else:
-                            layer_meta.setLinks(list_links)
+                        layer_meta.setLinks(list_links)
 
                         # On remplie la partie Emprise spatiale
                         source_crs = QgsCoordinateReferenceSystem(3945)
@@ -659,8 +664,6 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         layer_meta.setTitle(title)
                         layer_meta.setContacts([meta_contact])
                         layer_meta.setExtent(ext)
-                        if licence is not None:
-                            layer_meta.setLicenses([licence])
                         layer.setMetadata(layer_meta)
                     self.meta_message()
                     # self.activateWindow() # pour remettre la page du plugin en premier plan
@@ -1109,7 +1112,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         link_wms.type = "OGC-WMS Capabilities service (ver 1.3.0)"
                         link_wms.description = parent_text
                         link_wms.url = (
-                            GAM_GEOFLUX_URL + layer_schema + "/ows?SERVICE=WMS&"
+                            GAM_GEOFLUX_URL + "/" + layer_schema + "/ows?SERVICE=WMS&"
                         )
                         link_wms.format = "WMS"
 
@@ -1119,6 +1122,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         link_kml.description = parent_text
                         link_kml.url = (
                             GAM_GEOFLUX_URL
+                            + "/"
                             + layer_schema
                             + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
                             + layer_schema
@@ -1134,6 +1138,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         link_geojson.description = parent_text
                         link_geojson.url = (
                             GAM_GEOFLUX_URL
+                            + "/"
                             + layer_schema
                             + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
                             + layer_schema

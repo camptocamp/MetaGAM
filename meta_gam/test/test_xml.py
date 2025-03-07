@@ -18,10 +18,23 @@ def test_zip():
         'table="urba_plui_public"."plan_2_c2_inf_99_decheterie_surf" (geom)\''
     )
     layer = QgsVectorLayer(uri.uri(), "plan_2_c2_inf_99_decheterie_surf", "postgres")
+    layer.metadata().setLicenses(["Licence ouverte (OpenDATA)"])
     QgsProject.instance().addMapLayer(layer)
 
     dialog.auto_fill_meta()
     root = dialog.treeWidget.invisibleRootItem()
+    abstract_treeitem = next(
+        root.child(0).child(i)
+        for i in range(root.child(0).childCount())
+        if root.child(0).child(i).text(2) == "Licence"
+    )
+    dialog.treeWidget.itemWidget(abstract_treeitem, 3).setCurrentIndex(1)
+    assert (
+        dialog.treeWidget.itemWidget(abstract_treeitem, 3).currentText()
+        == "Licence ouverte (OpenDATA)"
+    )
+
+    dialog.update_meta()
     dialog.treeWidget.itemWidget(root.child(0), 0).setChecked(True)
 
     dialog.add_INSPIRE_to_xml()
@@ -39,4 +52,5 @@ def test_zip():
     )
 
     with open("./test/dechetterie.xml", "rb") as f:
-        assert xml_generic_dates == f.read()
+        xml_ref = f.read()
+        assert xml_generic_dates == xml_ref
