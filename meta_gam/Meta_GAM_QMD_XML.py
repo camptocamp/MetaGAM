@@ -47,59 +47,6 @@ GCO_URL = "http://www.isotc211.org/2005/gco"
 current_file_path = os.path.abspath(__file__)
 ISO_file_path = os.path.join(os.path.dirname(current_file_path), "resources")
 temp_file = os.path.join(os.path.dirname(current_file_path), "temp")
-new_xml_block = f"""
-    <gmd:pointOfContact xmlns:gmd="{GMD_URL}" xmlns:gco="{GCO_URL}">
-        <gmd:CI_ResponsibleParty>
-            <gmd:individualName>
-                <gco:CharacterString></gco:CharacterString>
-            </gmd:individualName>
-            <gmd:organisationName>
-                <gco:CharacterString>Grenoble Alpes Métropole</gco:CharacterString>
-            </gmd:organisationName>
-            <gmd:positionName>
-                <gco:CharacterString>Grenoble Alpes Métropole</gco:CharacterString>µ
-            </gmd:positionName>
-            <gmd:contactInfo>
-                <gmd:CI_Contact>
-                    <gmd:phone>
-                        <gmd:CI_Telephone>
-                            <gmd:voice>
-                            </gmd:voice>
-                            <gmd:facsimile>
-                                <gco:CharacterString/>
-                            </gmd:facsimile>
-                        </gmd:CI_Telephone>
-                    </gmd:phone>
-                    <gmd:address>
-                        <gmd:CI_Address>
-                            <gmd:deliveryPoint>
-                                <gco:CharacterString>3 Rue Malakoff</gco:CharacterString>
-                            </gmd:deliveryPoint>
-                            <gmd:city>
-                                <gco:CharacterString>Grenoble</gco:CharacterString>
-                            </gmd:city>
-                            <gmd:administrativeArea>
-                                <gco:CharacterString/>
-                            </gmd:administrativeArea>
-                            <gmd:postalCode>
-                                <gco:CharacterString>38100</gco:CharacterString>
-                            </gmd:postalCode>
-                            <gmd:country>
-                                <gco:CharacterString/>
-                            </gmd:country>
-                            <gmd:electronicMailAddress>
-                                <gco:CharacterString></gco:CharacterString>
-                            </gmd:electronicMailAddress>
-                        </gmd:CI_Address>
-                    </gmd:address>
-                </gmd:CI_Contact>
-            </gmd:contactInfo>
-            <gmd:role>
-                <gmd:CI_RoleCode codeList="http://standards.iso.org/ittf/PubliclyAvailableStandards/ISO_19139_Schemas/resources/codelist/ML_gmxCodelists.xml#CI_RoleCode" codeListValue="owner"/>
-            </gmd:role>
-        </gmd:CI_ResponsibleParty>
-    </gmd:pointOfContact>
-"""
 
 
 def save_temp_qmd(layer_name):
@@ -266,7 +213,6 @@ def create_zip(
         meta_xml = insert_layer_type(meta_xml, layer_type)
         meta_xml = insert_layer_denominateur(meta_xml, layer_denominateur)
         meta_xml = update_file_identifier(meta_xml, uuid)
-        meta_xml = insert_contact_xml(meta_xml)
         if date_publication is not None:
             meta_xml = insert_date_publication(meta_xml, date_publication)
 
@@ -340,11 +286,15 @@ def insert_inspire_xml(xml_string, keywords):
 
     ET.register_namespace("gmd", GMD_URL)
     ET.register_namespace("gco", GCO_URL)
-    key = "{http://www.isotc211.org/2005/gmd}descriptiveKeywords"
     descriptive_keywords = [
         el
-        for el in root.findall(".//" + key, namespaces)
-        if el.attrib.get("id") == "INSPIRE"
+        for el in root.findall(".//gmd:descriptiveKeywords", namespaces)
+        if el.find(
+            "gmd:MD_Keywords/gmd:thesaurusName/gmd:CI_Citation/"
+            "gmd:title[gco:CharacterString='GEMET - INSPIRE themes, version 1.0']",
+            namespaces,
+        )
+        is not None
     ]
 
     if descriptive_keywords:
@@ -503,39 +453,3 @@ def update_file_identifier(xml_string, meta_id):
         file_name_element.text = meta_id + ".png"
 
     return ET.tostring(tree, encoding="utf-8", method="xml")
-
-
-def insert_contact_xml(xml_string):
-    """Cette fonction renvoie une chaîne de caractères représentant le document
-    XML mis à jour avec le contact de la métropole.
-
-    Args:
-        xml_string (str): une chaîne de caractères représentant un document XML contenant des métadonnées.
-
-    Returns:
-        str: code xml.
-    """
-    tree = ET.fromstring(xml_string)
-    root = tree
-
-    namespaces = {
-        "gmd": GMD_URL,
-        "gco": GCO_URL,
-    }
-
-    ET.register_namespace("gmd", GMD_URL)
-    ET.register_namespace("gco", GCO_URL)
-
-    point_of_contact = root.find(".//gmd:pointOfContact", namespaces)
-    descriptive_keywords_parent = root.find(
-        ".//gmd:descriptiveKeywords[@id='INSPIRE']/..", namespaces
-    )
-    if point_of_contact is not None and descriptive_keywords_parent is not None:
-        # Créer un élément à partir du bloc XML à insérer
-        new_element = ET.fromstring(ET.canonicalize(new_xml_block, strip_text=True))
-
-        # Insérer le nouvel élément entre les balises </gmd:pointOfContact> et <gmd:descriptiveKeywords id="INSPIRE">
-        index = list(descriptive_keywords_parent).index(point_of_contact) + 1
-        descriptive_keywords_parent.insert(index, new_element)
-
-    return ET.tostring(root, encoding="utf-8", method="xml")

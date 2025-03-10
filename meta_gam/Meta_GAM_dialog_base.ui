@@ -115,7 +115,7 @@
           <item>
            <widget class="QPushButton" name="pb_meta_apply">
             <property name="text">
-             <string>Sauvgarder les modifications</string>
+             <string>Sauvegarder les modifications</string>
             </property>
            </widget>
           </item>

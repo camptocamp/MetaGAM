@@ -78,7 +78,7 @@
 
             <gmd:dateStamp>
                 <gco:DateTime>
-                    <xsl:value-of select="substring(date:date(), 1, 10)"/>
+                    <xsl:value-of select="date:date-time()"/>
                 </gco:DateTime>
             </gmd:dateStamp>
 
@@ -149,6 +149,13 @@
                     <gmd:status>
                         <gmd:MD_ProgressCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#MD_ProgressCode" codeListValue="underDevelopment">underDevelopment</gmd:MD_ProgressCode>
                     </gmd:status>
+
+                    <!-- Metadata dataset contact -->
+                    <xsl:call-template name="contact">
+                        <xsl:with-param name="contact" select="qgis/contact" />
+                        <xsl:with-param name="element" select="'gmd:pointOfContact'" />
+                    </xsl:call-template>
+
                     <gmd:resourceMaintenance>
                         <gmd:MD_MaintenanceInformation>
                         <gmd:maintenanceAndUpdateFrequency>
@@ -156,6 +163,22 @@
                         </gmd:maintenanceAndUpdateFrequency>
                         </gmd:MD_MaintenanceInformation>
                     </gmd:resourceMaintenance>
+
+                    <!-- Adding thumbnail-->
+                    <gmd:graphicOverview>
+                        <gmd:MD_BrowseGraphic>
+                            <gmd:fileName>
+                                    <gco:CharacterString><xsl:value-of select="qgis/identifier"/>.png</gco:CharacterString>
+                            </gmd:fileName>
+                            <gmd:fileDescription>
+                                <gco:CharacterString>thumbnail</gco:CharacterString>
+                            </gmd:fileDescription>
+                            <gmd:fileType>
+                                <gco:CharacterString>png</gco:CharacterString>
+                            </gmd:fileType>
+                        </gmd:MD_BrowseGraphic>
+                    </gmd:graphicOverview>
+
                     <!-- Free text keywords -->
                     <xsl:if test="qgis/keywords[@vocabulary='']">
                         <gmd:descriptiveKeywords>
@@ -173,12 +196,6 @@
                             </gmd:MD_Keywords>
                         </gmd:descriptiveKeywords>
                     </xsl:if>
-
-                    <!-- Metadata dataset contact -->
-                    <xsl:call-template name="contact">
-                        <xsl:with-param name="contact" select="qgis/contact" />
-                        <xsl:with-param name="element" select="'gmd:pointOfContact'" />
-                    </xsl:call-template>
 
                     <!-- Vocabulary keywords -->
                     <xsl:if test="qgis/keywords[@vocabulary!='' and @vocabulary!='gmd:topicCategory']">
@@ -221,7 +238,7 @@
                         </xsl:for-each>
                     </xsl:if>
                     <!-- Themes inspire -->
-                    <gmd:descriptiveKeywords id="INSPIRE">
+                    <gmd:descriptiveKeywords>
                         <gmd:MD_Keywords>
                             <gmd:keyword>
                                 <gmd:MD_KeywordTypeCode codeList="http://standards.iso.org/iso/19139/resources/gmxCodelists.xml#MD_KeywordTypeCode" codeListValue="theme" />
@@ -462,20 +479,6 @@
                             </gmd:extent>
                         </xsl:otherwise>
                     </xsl:choose>
-                    <!-- Adding thumbnail-->
-                    <gmd:graphicOverview>
-                        <gmd:MD_BrowseGraphic>
-                            <gmd:fileName>
-                                    <gco:CharacterString><xsl:value-of select="qgis/identifier"/>.png</gco:CharacterString>
-                            </gmd:fileName>
-                            <gmd:fileDescription>
-                                <gco:CharacterString>thumbnail</gco:CharacterString>
-                            </gmd:fileDescription>
-                            <gmd:fileType>
-                                <gco:CharacterString>png</gco:CharacterString>
-                            </gmd:fileType>
-                        </gmd:MD_BrowseGraphic>
-                    </gmd:graphicOverview>
                     <gmd:supplementalInformation xmlns:gco="http://standards.iso.org/iso/19115/-3/gco/1.0">
                         <gco:CharacterString xmlns:gco="http://www.isotc211.org/2005/gco" />
                     </gmd:supplementalInformation>
@@ -638,10 +641,9 @@
                             </gmd:CI_Telephone>
                         </gmd:phone>
 
-                        <!-- Process addresses of type Postal -->
-                        <xsl:for-each select="$contact/contactAddress">
-                            <gmd:address>
-                                <gmd:CI_Address>
+                        <gmd:address>
+                            <gmd:CI_Address>
+                                <xsl:if test="string($contact/contactAddress)">
                                     <gmd:deliveryPoint>
                                         <gco:CharacterString>
                                             <xsl:value-of select="address"/>
@@ -667,14 +669,14 @@
                                             <xsl:value-of select="country"/>
                                         </gco:CharacterString>
                                     </gmd:country>
-                                    <gmd:electronicMailAddress>
-                                        <gco:CharacterString>
-                                            <xsl:value-of select="$contact/email"/>
-                                        </gco:CharacterString>
-                                    </gmd:electronicMailAddress>
-                                </gmd:CI_Address>
-                            </gmd:address>
-                        </xsl:for-each>
+                                </xsl:if>
+                                <gmd:electronicMailAddress>
+                                    <gco:CharacterString>
+                                        <xsl:value-of select="$contact/email"/>
+                                    </gco:CharacterString>
+                                </gmd:electronicMailAddress>
+                            </gmd:CI_Address>
+                        </gmd:address>
                     </gmd:CI_Contact>
                 </gmd:contactInfo>
                 <gmd:role>

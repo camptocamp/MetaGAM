@@ -1,3 +1,4 @@
+import re
 from zipfile import ZipFile
 
 from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsProject
@@ -16,7 +17,7 @@ def test_zip():
         "srid=3945 type=Polygon checkPrimaryKeyUnicity='1' "
         'table="urba_plui_public"."plan_2_c2_inf_99_decheterie_surf" (geom)\''
     )
-    layer = QgsVectorLayer(uri.uri(), "test", "postgres")
+    layer = QgsVectorLayer(uri.uri(), "plan_2_c2_inf_99_decheterie_surf", "postgres")
     QgsProject.instance().addMapLayer(layer)
 
     dialog.auto_fill_meta()
@@ -27,5 +28,15 @@ def test_zip():
     meta_ids = dialog.get_meta_ID(layer.metadata().identifier())
     with ZipFile(f"./temp/{meta_ids[0]}.zip") as z:
         xml = z.read(f"{meta_ids[0]}/metadata/metadata.xml")
+    xml_generic_dates = re.sub(
+        rb"<gco:DateTime>[^<>]*</gco:DateTime>",
+        b"<gco:DateTime>today_now</gco:DateTime>",
+        re.sub(
+            rb"<gco:Date>[^<>]*</gco:Date>",
+            b"<gco:Date>today</gco:Date>",
+            xml,
+        ),
+    )
+
     with open("./test/dechetterie.xml", "rb") as f:
-        assert xml == f.read()
+        assert xml_generic_dates == f.read()

@@ -27,6 +27,7 @@ import os
 import re
 
 import psycopg2
+from psycopg2.extras import RealDictCursor
 import requests
 from qgis.core import (
     QgsBox3d,
@@ -135,10 +136,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         self.labelGeo.setOpenExternalLinks(True)
         self.pbAutoMeta.clicked.connect(self.auto_fill_meta)
         self.pb_meta_cancel.clicked.connect(self.close_plugin)
-        self.pb_meta_apply.clicked.connect(self.get_tree_checkbox_status)
-        self.pb_meta_apply.clicked.connect(self.update_meta)
-        self.pb_meta_apply.clicked.connect(self.tree_layers_color)
-        self.pb_meta_apply.clicked.connect(self.set_tree_checkbox_status)
+        self.pb_meta_apply.clicked.connect(self.click_apply)
         self.pbConnexion.clicked.connect(self.check_connexion_gn)
         self.pbPost.clicked.connect(self.update_progressbar)
         self.pbCancel.clicked.connect(self.close_plugin)
@@ -245,14 +243,9 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         get contact from database
         """
         connexion = self.connexion_postgresql()[1]
-        cur = connexion.cursor()
-        cur.execute("SELECT * FROM sit_hydre.gest_bdd_contact_referents")
-        rows = cur.fetchall()
-        columns = [desc[0] for desc in cur.description]
-        json_list = []
-        for row in rows:
-            json_list.append(dict(zip(columns, row)))
-        return json_list
+        with connexion.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT * FROM sit_hydre.gest_bdd_contact_referents")
+            return cur.fetchall()
 
     def get_thematique_tab(self):
         """
@@ -395,12 +388,18 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                                         keywords.insert(0, keyword)
                             elif keywords is None and theme_keywords is not None:
                                 keywords = theme_keywords
+                            if len(contact_id) == 0:
+                                new_contact = self.create_default_DB_contact(
+                                    id_thematique
+                                )
+                                tab_contacts = [new_contact]
+                                contact_id = [new_contact.get("id")]
                             for obj_contact in tab_contacts:
-                                if contact_id != []:
-                                    if contact_id[0] == obj_contact.get("id"):
-                                        contact_nom = obj_contact.get("nom")
-                                        contact_prenom = obj_contact.get("prenom")
-                                        contact_mail = obj_contact.get("mail")
+                                if contact_id[0] == obj_contact.get("id"):
+                                    contact_nom = obj_contact.get("nom")
+                                    contact_prenom = obj_contact.get("prenom")
+                                    contact_mail = obj_contact.get("mail")
+
                 if len(self.layers_niveau) > 0:
                     if self.layers_niveau.get(layer_projet_name) == 1:
                         meta_contact = QgsLayerMetadata.Contact()
@@ -971,43 +970,48 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                                 attribut.addChild(item_abstract)
                                 tree.setItemWidget(item_abstract, 3, value_abstract)
 
-    def update_meta(self):
+    def click_apply(self):
         """
         update metadata
         """
+        self.get_tree_checkbox_status()
         if self.treeWidget.topLevelItemCount() == 0:
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Critical)
-            msg.setText("Vous n'avez pas lancer l'Auto-remplissage encore!")
+            msg.setText("Vous n'avez pas encore lancé l'auto-remplissage !")
             msg.setWindowTitle("Erreur!!")
             msg.exec_()
         else:
-            dict_inspire = None
-            parent = self.treeWidget.invisibleRootItem()
-            project = QgsProject.instance()
-            for layer in project.mapLayers().values():
-                layer_meta = layer.metadata()
-                layer_name = layer.name()
-                if len(self.layers_niveau) > 0:
-                    if self.layers_niveau.get(layer_name) == 1:
-                        source = str(layer.source())
-                        start = source.find("table=") + len("table=")
-                        end = source.find(".")
-                        layer_schema = source[start:end]
-                        layer_schema = layer_schema[1:-1]
-                        self.get_new_tree_val(
-                            parent, layer_name, layer_meta, layer_schema
-                        )
-                        layer.setMetadata(layer_meta)
-                        dict_inspire = self.dict_tree_INSPIRE_val()
-            self.layers_tree()
-            self.set_tree()
-            self.set_tree_INSPIRE_new_val(dict_inspire)
+            self.update_meta()
             msg = QMessageBox()
             msg.setIcon(QMessageBox.Information)
             msg.setText("Vos fiches sont à jour!")
             msg.setWindowTitle("Info!")
             msg.exec_()
+
+        self.tree_layers_color()
+        self.set_tree_checkbox_status()
+
+    def update_meta(self):
+        dict_inspire = None
+        parent = self.treeWidget.invisibleRootItem()
+        project = QgsProject.instance()
+        for layer in project.mapLayers().values():
+            layer_meta = layer.metadata()
+            layer_name = layer.name()
+            if len(self.layers_niveau) > 0:
+                if self.layers_niveau.get(layer_name) == 1:
+                    source = str(layer.source())
+                    start = source.find("table=") + len("table=")
+                    end = source.find(".")
+                    layer_schema = source[start:end]
+                    layer_schema = layer_schema[1:-1]
+                    self.get_new_tree_val(parent, layer_name, layer_meta, layer_schema)
+                    layer.setMetadata(layer_meta)
+                    dict_inspire = self.dict_tree_INSPIRE_val()
+        self.layers_tree()
+        self.set_tree()
+        self.set_tree_INSPIRE_new_val(dict_inspire)
 
     def get_new_tree_val(self, root, parent_text, metadata, layer_schema):
         """_summary_
@@ -1191,6 +1195,29 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                 connexion.commit()
         cur.close()
         connexion.close()
+
+    def create_default_DB_contact(self, thematique_id):
+        print("Creating default contact data in DB.")
+        connexion = self.connexion_postgresql()[1]
+        with connexion.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute(
+                "INSERT INTO sit_hydre.gest_bdd_contact_referents "
+                "(prenom, nom, mail) "
+                "VALUES ("
+                "'Service d''information territorial', "
+                "'(SIT)', "
+                "'demande_sit@grenoblealpesmetropole.fr'"
+                ") RETURNING *"
+            )
+            new_item = cur.fetchone()
+            cur.execute(
+                "INSERT INTO sit_hydre.gest_bdd_rel_thematique_contact_referents "
+                "(thematique_id, contact_referent_id, type_ref) "
+                f"VALUES ('{thematique_id}', '{new_item['id']}', '')"
+            )
+        connexion.commit()
+        connexion.close()
+        return new_item
 
     def get_tree_INSPIRE_val(self, layer_name):
         """_summary_
