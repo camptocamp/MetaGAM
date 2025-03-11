@@ -12,6 +12,13 @@ from meta_gam.test.utilities import get_qgis_app
 QGIS_APP = get_qgis_app()
 
 
+def get_link_protocols(mock):
+    return set(
+        tuple([*r.qs.get("outputformat", [None]), *r.qs.get("service", [None])])
+        for r in mock.request_history
+    )
+
+
 @attr("localDB")
 def test_zip():
     dialog = MetaGAMDialog(None)
@@ -32,11 +39,14 @@ def test_zip():
         )
         dialog.auto_fill_meta()
 
-        assert m.call_count == 3
-        assert set(
-            tuple([*r.qs.get("outputformat", [None]), *r.qs["service"]])
-            for r in m.request_history
-        ) == {(None, "wms"), ("kml", "wfs"), ("application/json", "wfs")}
+        assert m.call_count == 4
+        link_protocols = get_link_protocols(m)
+        assert link_protocols == {
+            (None, "wms"),
+            (None, "wfs"),
+            ("kml", "wfs"),
+            ("application/json", "wfs"),
+        }
 
     root = dialog.treeWidget.invisibleRootItem()
     abstract_treeitem = next(
@@ -56,11 +66,14 @@ def test_zip():
         )
         dialog.update_meta()
 
-        assert m.call_count == 3
-        assert set(
-            tuple([*r.qs.get("outputformat", [None]), *r.qs["service"]])
-            for r in m.request_history
-        ) == {(None, "wms"), ("kml", "wfs"), ("application/json", "wfs")}
+        assert m.call_count == 4
+        link_protocols = get_link_protocols(m)
+        assert link_protocols == {
+            (None, "wms"),
+            (None, "wfs"),
+            ("kml", "wfs"),
+            ("application/json", "wfs"),
+        }
     dialog.treeWidget.itemWidget(root.child(0), 0).setChecked(True)
 
     dialog.add_INSPIRE_to_xml()

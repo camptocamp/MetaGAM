@@ -13,7 +13,8 @@ LINK_NAMES = {
 }
 
 LINK_TYPES = {
-    "WMS": "OGC-WMS Capabilities service (ver 1.3.0)",
+    "WMS": "OGC:WMS",
+    "WFS": "OGC:WFS",
     "KML": "WWW:DOWNLOAD-1.0-http--download",
     "GeoJSON": "WWW:DOWNLOAD-1.0-http--download",
 }
@@ -24,6 +25,8 @@ LINK_FORMATS = {"GeoJSON": "application%2Fjson"}
 def create_link(layer_schema, layer_name, link_type):
     link = QgsAbstractMetadataBase.Link()
     link.name = LINK_NAMES.get(link_type, layer_name)
+    if link_type == "WFS":
+        link.name = f"{layer_schema}:{layer_name}"
     link.type = LINK_TYPES.get(link_type, "https")
     link.description = layer_name
     link.url = create_url(layer_schema, layer_name, link_type)
@@ -32,8 +35,8 @@ def create_link(layer_schema, layer_name, link_type):
 
 
 def create_url(layer_schema, layer_name, link_type):
-    if link_type == "WMS":
-        return f"{GAM_GEOFLUX_URL}/{layer_schema}/ows?SERVICE=WMS&"
+    if link_type in ["WMS", "WFS"]:
+        return f"{GAM_GEOFLUX_URL}/{layer_schema}/ows"
     output_format = LINK_FORMATS.get(link_type, link_type.lower())
     return (
         f"{GAM_GEOFLUX_URL}/{layer_schema}/ows?service=WFS&version=1.0.0&request=GetFeature"
@@ -43,7 +46,7 @@ def create_url(layer_schema, layer_name, link_type):
 
 def check_link(link):
     params = {}
-    if link.format == "WMS":
-        params = {"request": "GetCapabilities"}
+    if link.format in ["WMS", "WFS"]:
+        params = {"request": "GetCapabilities", "service": link.format}
     response = requests.get(link.url, params=params, timeout=HTTP_TIMEOUT)
     return response.status_code == 200

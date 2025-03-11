@@ -233,7 +233,7 @@ def create_links(layer_schema, layer_name, export_GS_links):
     list_links = [link_metro]
 
     if export_GS_links:
-        for link_type in ["KML", "GeoJSON", "WMS"]:
+        for link_type in ["KML", "GeoJSON", "WMS", "WFS"]:
             link = create_link(layer_schema, layer_name, link_type)
             if check_link(link):
                 list_links.append(link)

@@ -41,7 +41,8 @@ from qgis.core import (
     QgsMapLayer,
     QgsWkbTypes,
 )
-from qgis.gui import QgsCheckableComboBox
+from qgis.gui import QgsCheckableComboBox, QgsMessageBar
+from qgis.core import Qgis
 from qgis.PyQt.QtCore import Qt, QUrl
 from qgis.PyQt.QtGui import (
     QBrush,
@@ -54,7 +55,6 @@ from qgis.PyQt.QtWidgets import (
     QDialog,
     QLabel,
     QLineEdit,
-    QMessageBox,
     QPushButton,
     QTableView,
     QTreeWidget,
@@ -93,6 +93,9 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         """Constructor."""
         super().__init__(parent)
         self.setupUi(self)
+        self.mb = QgsMessageBar(self)
+        self.layout().insertWidget(0, self.mb)
+
         self.treeWidget = self.findChild(QTreeWidget, "treeWidget")
         self.tableGN = self.findChild(QTableView, "tableGN")
         self.tableGN.doubleClicked.connect(self.on_table_gn_double_click)
@@ -203,7 +206,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             if reraise:
                 raise e
             else:
-                QMessageBox.critical(self, "Erreur", str(e), QMessageBox.Ok)
+                self.push_message_bar(str(e), Qgis.Critical)
                 return False, None
 
     def get_metadata_gestion_tab(self):
@@ -413,7 +416,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             # address.country = 'France'
                             meta_contact.addresses = [address]
 
-                        # On remplie la partie Résumé
+                        # On remplit la partie Résumé
                         res = None
                         if (
                             layer.type() != QgsMapLayerType.RasterLayer
@@ -596,32 +599,32 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         layer_meta.setContacts([meta_contact])
                         layer_meta.setExtent(ext)
                         layer.setMetadata(layer_meta)
-                    self.meta_message()
+                    self.push_message_bar(
+                        f"La fiche métadonnées {layer_name} est remplie!"
+                    )
                     # self.activateWindow() # pour remettre la page du plugin en premier plan
                     self.layers_tree()
                     self.set_tree()
                     self.tree_layers_color()
                     self.frame_legende.setVisible(True)
                 else:
-                    msg = QMessageBox()
-                    msg.setIcon(QMessageBox.Critical)
-                    msg.setText(
-                        "Aucune couche dans votre projet est une couche principale!"
+                    self.push_message_bar(
+                        "Aucune couche dans votre projet n'est une couche principale!",
+                        Qgis.Critical,
                     )
-                    msg.setWindowTitle("Erreur")
-                    msg.exec_()
 
-    def meta_message(self):
+    def push_message_bar(self, message, level=Qgis.Info):
         """_summary_
 
         Fonction qui renvoie aprés l'auto-remplissage des métadonnées.
 
         """
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText("Les fiches métadonnées sont remplies!")
-        msg.setWindowTitle("Information metadata")
-        # msg.exec_()
+        if level == Qgis.Critical:
+            self.mb.pushMessage(
+                message, level=level, duration=0
+            )  # keep displayed until manual cancel
+        else:
+            self.mb.pushMessage(message, level=level)
 
     def meta_qgis_validation(self, layer_name):
         """_summary_
@@ -910,18 +913,13 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         """
         self.get_tree_checkbox_status()
         if self.treeWidget.topLevelItemCount() == 0:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText("Vous n'avez pas encore lancé l'auto-remplissage !")
-            msg.setWindowTitle("Erreur!!")
-            msg.exec_()
+            self.push_message_bar(
+                "Vous n'avez pas encore lancé l'auto-remplissage !",
+                Qgis.Critical,
+            )
         else:
             self.update_meta()
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
-            msg.setText("Vos fiches sont à jour!")
-            msg.setWindowTitle("Info!")
-            msg.exec_()
+            self.push_message_bar("Vos fiches sont à jour!", Qgis.Success)
 
         self.tree_layers_color()
         self.set_tree_checkbox_status()
@@ -1313,33 +1311,23 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         username = self.get_auth_gn()[0]
         motdepass = self.get_auth_gn()[1]
         if username == "" and motdepass == "":
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText("Vous n'avez pas saisie de username ni de mot de pass")
-            msg.setWindowTitle("Erreur!!")
-            msg.exec_()
+            self.push_message_bar(
+                "Vous n'avez pas saisi de username ni de mot de passe", Qgis.Critical
+            )
         elif username == "":
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText("Vous n'avez pas saisie de username")
-            msg.setWindowTitle("Erreur!!")
-            msg.exec_()
+            self.push_message_bar("Vous n'avez pas saisi de username", Qgis.Critical)
         elif motdepass == "":
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText("Vous n'avez pas saisie de mot de pass")
-            msg.setWindowTitle("Erreur!!")
-            msg.exec_()
+            self.push_message_bar(
+                "Vous n'avez pas saisi de mot de passe", Qgis.Critical
+            )
         else:
             if connexion_geonetwork(username, motdepass)[0]:
                 self.pbPost.setVisible(True)
                 self.label_3.setVisible(True)
             else:
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Critical)
-                msg.setText("Username ou mot de pass incorrecte!!")
-                msg.setWindowTitle("Erreur!!")
-                msg.exec_()
+                self.push_message_bar(
+                    "Username ou mot de passe incorrect!!", Qgis.Critical
+                )
 
     def populate_tab_gn(self):
         """_summary_
@@ -1540,13 +1528,10 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             self.populate_tab_gn()
             self.progressBar.setValue(100)
         else:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText(
-                "Vous n'avez pas saisie un titre pour la couche à envoyer! \n"
-                "- Retournez dans ''Gestion de métadonnées'' et ajouter un titre "
+            self.push_message_bar(
+                "Vous n'avez pas saisi un titre pour la couche à envoyer! \n"
+                "- Retournez dans ''Gestion de métadonnées'' et ajoutez un titre "
                 "à l'endroit ou il n'y en a pas pour la couche en question. \n"
-                "- Ensuite sauvegarder les modifications."
+                "- Ensuite sauvegardez les modifications.",
+                Qgis.Critical,
             )
-            msg.setWindowTitle("Erreur!!")
-            msg.exec_()
