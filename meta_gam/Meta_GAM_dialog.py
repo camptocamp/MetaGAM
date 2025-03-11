@@ -611,7 +611,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                                 link_kml.url, timeout=HTTP_TIMEOUT
                             )
                             response_geojson = requests.get(
-                                link_kml.url, timeout=HTTP_TIMEOUT
+                                link_geojson.url, timeout=HTTP_TIMEOUT
                             )
                             if response_kml.status_code == 200:
                                 list_links.append(link_kml)
@@ -1162,7 +1162,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                                 link_kml.url, timeout=HTTP_TIMEOUT
                             )
                             response_geojson = requests.get(
-                                link_kml.url, timeout=HTTP_TIMEOUT
+                                link_geojson.url, timeout=HTTP_TIMEOUT
                             )
                             if response_kml.status_code == 200:
                                 list_links.append(link_kml)

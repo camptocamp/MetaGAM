@@ -1,6 +1,7 @@
 import re
 from zipfile import ZipFile
 from nose.plugins.attrib import attr
+import requests_mock
 
 from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsProject
 
@@ -36,7 +37,17 @@ def test_zip():
         == "Licence ouverte (OpenDATA)"
     )
 
-    dialog.update_meta()
+    with requests_mock.Mocker() as m:
+        m.get(
+            "https://geoflux.grenoblealpesmetropole.fr/geoserver/urba_plui_public/ows"
+        )
+        dialog.update_meta()
+
+        assert m.call_count == 3
+        assert set(
+            tuple([*r.qs.get("outputformat", [None]), *r.qs["service"]])
+            for r in m.request_history
+        ) == {(None, "wms", "wms"), ("kml", "wfs"), ("application/json", "wfs")}
     dialog.treeWidget.itemWidget(root.child(0), 0).setChecked(True)
 
     dialog.add_INSPIRE_to_xml()

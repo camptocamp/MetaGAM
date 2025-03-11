@@ -125,6 +125,17 @@ class MetaGAMDialogTest(unittest.TestCase):
                 ):
                     self.dialog.pbPost.click()
                 assert m.call_count == 8
+                post_requests = [
+                    r
+                    for r in m.request_history
+                    if r.path == "/geonetwork/srv/api/records"
+                    and r._request.method == "POST"
+                ]
+                # Check that metadata post method has been called with or without group
+                if user_json["profile"] == "UserAdmin":
+                    assert all("group=" in r.query for r in post_requests)
+                else:
+                    assert not any("group=" in r.query for r in post_requests)
         assert self.dialog.model.rowCount() == 1
         assert self.dialog.model.item(0, 0).text() == "monPolygon"
         assert (
