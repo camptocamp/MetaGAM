@@ -3,6 +3,7 @@ test fonctionnel principal
 """
 import os
 import unittest
+from nose.plugins.attrib import attr
 from requests.structures import CaseInsensitiveDict
 from ..Meta_GAM_Geonetwork import connexion_geonetwork, get_meta_date_gn
 
@@ -27,6 +28,7 @@ class MyTestClass(unittest.TestCase):
         """
         pass  # pylint: disable=unnecessary-pass
 
+    @attr("onlineGN")
     def test_connexionGeonetwork(self):
         """
         Appel de la fonction à tester
@@ -55,6 +57,7 @@ class MyTestClass(unittest.TestCase):
         )  # Vérifie que le sixième élément est une chaîne de caractères
         self.assertIsNone(result[6])  # Vérifie que le septième élément est None
 
+    @attr("onlineGN")
     def test_getMetaDateGN(self):
         """
         Appel de la fonction à tester

@@ -8,8 +8,12 @@
 
 """
 
+import uuid
 import unittest
+from unittest.mock import patch
+from nose.plugins.attrib import attr
 import requests
+import requests_mock
 
 from qgis.PyQt.QtWidgets import QDialog
 
@@ -33,11 +37,15 @@ class MetaGAMDialogTest(unittest.TestCase):
     def setUp(self):
         """Runs before each test."""
         self.dialog = MetaGAMDialog(None)
+        self.dialog.leUsername.setText("admin")
+        self.dialog.lePassword.setText("admin")
+        self.id = str(uuid.uuid4())
 
     def tearDown(self):
         """Runs after each test."""
         self.dialog = None
 
+    @attr("localDB")
     def test_dialog_auto_fill(self):
         """Test we can click AutoFill."""
         self.dialog.UserPassword = "geonetwork"
@@ -58,6 +66,74 @@ class MetaGAMDialogTest(unittest.TestCase):
         self.assertTrue(self.dialog.connexion_postgresql()[0])
         QgsProject.instance().removeMapLayer(layer)
 
+    def test_mocked_connect(self):
+        with requests_mock.Mocker() as m:
+            cookies = requests_mock.CookieJar()
+            cookies.set("XSRF-TOKEN", "dummy_xsrf", path="/geonetwork")
+            m.post(
+                "http://geonetwork:8080/geonetwork/srv/eng/info",
+                text="",
+                cookies=cookies,
+            )
+            m.get("http://geonetwork:8080/geonetwork/srv/eng/info", text="")
+            m.get(
+                "http://geonetwork:8080/geonetwork/srv/api/me",
+                json={"profile": "Admin"},
+            )
+            self.dialog.pbConnexion.click()
+            assert m.call_count == 3
+
+    def test_mocked_publish(self):
+        tempLayer = QgsVectorLayer("polygon", "monPolygon", "memory")
+        meta = tempLayer.metadata()
+        meta.setIdentifier(self.id)
+        tempLayer.setMetadata(meta)
+        QgsProject.instance().addMapLayer(tempLayer)
+
+        for user_json in [
+            {"profile": "Admin"},
+            {"profile": "UserAdmin", "groupsWithUserAdmin": ["monGroupe"]},
+        ]:
+            with requests_mock.Mocker() as m:
+                cookies = requests_mock.CookieJar()
+                cookies.set("XSRF-TOKEN", "dummy_xsrf", path="/geonetwork")
+                m.post(
+                    "http://geonetwork:8080/geonetwork/srv/eng/info",
+                    text="",
+                    cookies=cookies,
+                )
+                m.get("http://geonetwork:8080/geonetwork/srv/eng/info", text="")
+                m.get("http://geonetwork:8080/geonetwork/srv/api/me", json=user_json)
+                m.get(
+                    f"http://geonetwork:8080/geonetwork/srv/api/records/{self.id}/formatters/xml",
+                    text='<main xmlns:gco="http://www.isotc211.org/2005/gco"><gco:Date>1-1-2011</gco:Date></main>',
+                )
+                m.post("http://geonetwork:8080/geonetwork/srv/api/records")
+
+                def cb_status(cl):
+                    cl.tree_checkbox_status = {0: True}
+
+                with patch(
+                    "meta_gam.Meta_GAM_dialog.MetaGAMDialog.get_tree_checkbox_status",
+                    cb_status,
+                ), patch(
+                    "meta_gam.Meta_GAM_dialog.MetaGAMDialog.check_tree_title",
+                    lambda c: True,
+                ), patch(
+                    "meta_gam.Meta_GAM_dialog.MetaGAMDialog.get_meta_ID",
+                    lambda c, id: [self.id],
+                ):
+                    self.dialog.pbPost.click()
+                assert m.call_count == 8
+        assert self.dialog.model.rowCount() == 1
+        assert self.dialog.model.item(0, 0).text() == "monPolygon"
+        assert (
+            self.dialog.model.item(0, 1).text()
+            == f"http://geonetwork:8080/geonetwork/srv/fre/catalog.search#/metadata/{self.id}"
+        )
+        QgsProject.instance().removeMapLayer(tempLayer)
+
+    @attr("localGN")
     def test_publish(self):
         """Test we can publish the data."""
         self.dialog.UserPassword = "geonetwork"
@@ -76,8 +152,6 @@ class MetaGAMDialogTest(unittest.TestCase):
         self.dialog.pbAutoMeta.click()
         assert root.childCount() == 1
         assert self.dialog.check_tree_title()
-        self.dialog.leUsername.setText("admin")
-        self.dialog.lePassword.setText("admin")
         assert self.dialog.pbPost.isHidden()
         abstract_treeitem = next(
             root.child(0).child(i)

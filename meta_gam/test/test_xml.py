@@ -1,5 +1,6 @@
 import re
 from zipfile import ZipFile
+from nose.plugins.attrib import attr
 
 from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsProject
 
@@ -10,6 +11,7 @@ from meta_gam.test.utilities import get_qgis_app
 QGIS_APP = get_qgis_app()
 
 
+@attr("localDB")
 def test_zip():
     dialog = MetaGAMDialog(None)
     uri = QgsDataSourceUri(
