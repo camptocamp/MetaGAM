@@ -21,10 +21,23 @@ def test_zip():
         'table="urba_plui_public"."plan_2_c2_inf_99_decheterie_surf" (geom)\''
     )
     layer = QgsVectorLayer(uri.uri(), "plan_2_c2_inf_99_decheterie_surf", "postgres")
-    layer.metadata().setLicenses(["Licence ouverte (OpenDATA)"])
+    meta = layer.metadata()
+    meta.setLicenses(["Licence ouverte (OpenDATA)"])
+    layer.setMetadata(meta)
     QgsProject.instance().addMapLayer(layer)
 
-    dialog.auto_fill_meta()
+    with requests_mock.Mocker() as m:
+        m.get(
+            "https://geoflux.grenoblealpesmetropole.fr/geoserver/urba_plui_public/ows"
+        )
+        dialog.auto_fill_meta()
+
+        assert m.call_count == 3
+        assert set(
+            tuple([*r.qs.get("outputformat", [None]), *r.qs["service"]])
+            for r in m.request_history
+        ) == {(None, "wms"), ("kml", "wfs"), ("application/json", "wfs")}
+
     root = dialog.treeWidget.invisibleRootItem()
     abstract_treeitem = next(
         root.child(0).child(i)
@@ -47,7 +60,7 @@ def test_zip():
         assert set(
             tuple([*r.qs.get("outputformat", [None]), *r.qs["service"]])
             for r in m.request_history
-        ) == {(None, "wms", "wms"), ("kml", "wfs"), ("application/json", "wfs")}
+        ) == {(None, "wms"), ("kml", "wfs"), ("application/json", "wfs")}
     dialog.treeWidget.itemWidget(root.child(0), 0).setChecked(True)
 
     dialog.add_INSPIRE_to_xml()

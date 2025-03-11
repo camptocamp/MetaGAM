@@ -28,7 +28,6 @@ import re
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
-import requests
 from qgis.core import (
     QgsBox3d,
     QgsMapLayerType,
@@ -38,7 +37,6 @@ from qgis.core import (
     QgsProject,
     QgsRectangle,
     QgsLayerMetadata,
-    QgsAbstractMetadataBase,
     QgsNativeMetadataValidator,
     QgsMapLayer,
     QgsWkbTypes,
@@ -68,7 +66,13 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.PyQt.uic import loadUiType
 
-from .Meta_GAM_Geonetwork import connexion_geonetwork, get_meta_date_gn, post_meta_gn
+from .Meta_GAM_constants import LICENCE_OUVERTE_OD, LICENCE_FERMEE, THEMES_INSPIRE
+from .Meta_GAM_Geonetwork import (
+    connexion_geonetwork,
+    get_meta_date_gn,
+    post_meta_gn,
+    create_links,
+)
 from .Meta_GAM_QMD_XML import clean_temp, create_zip, remove_all_zip_files
 
 # pylint: disable=too-many-lines
@@ -77,14 +81,6 @@ from .Meta_GAM_QMD_XML import clean_temp, create_zip, remove_all_zip_files
 FORM_CLASS, _ = loadUiType(
     os.path.join(os.path.dirname(__file__), "Meta_GAM_dialog_base.ui")
 )
-
-LICENCE_OUVERTE_OD = "Licence ouverte (OpenDATA)"
-LICENCE_FERMEE = "Licence fermée (Uniquement en interne)"
-
-GAM_GEOFLUX_URL = "https://geoflux.grenoblealpesmetropole.fr/geoserver"
-THEMES_INSPIRE = "Thèmes INSPIRE"
-
-HTTP_TIMEOUT = 30
 
 
 class MetaGAMDialog(QDialog, FORM_CLASS):
@@ -543,83 +539,18 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             title = meta_titre
 
                         # On remplie la partie Liens
-                        link_metro = QgsAbstractMetadataBase.Link()
-                        link_metro.name = "Grenoble-Alpes Métropole"
-                        link_metro.type = "https"
-                        link_metro.description = "Site de la Métropole"
-                        link_metro.url = " https://www.grenoblealpesmetropole.fr/"
-                        link_metro.format = "HTTPS"
-
                         if licence is not None:
                             layer_meta.setLicenses([licence])
-                        list_links = [link_metro]
-                        if (
+
+                        export_GS_links = (
                             layer_meta.licenses() != []
                             and layer_meta.licenses()[0] == LICENCE_OUVERTE_OD
-                        ):
-                            link_wms = QgsAbstractMetadataBase.Link()
-                            link_wms.name = layer_name
-                            link_wms.type = "OGC-WMS Capabilities service (ver 1.3.0)"
-                            link_wms.description = layer_name
-                            link_wms.url = (
-                                GAM_GEOFLUX_URL
-                                + "/"
-                                + layer_schema
-                                + "/ows?SERVICE=WMS&"
-                            )
-                            link_wms.format = "WMS"
+                        )
+                        ext_links = create_links(
+                            layer_schema, layer_name, export_GS_links
+                        )
 
-                            link_kml = QgsAbstractMetadataBase.Link()
-                            link_kml.name = "Format KML"
-                            link_kml.type = "WWW:DOWNLOAD-1.0-http--download"
-                            link_kml.description = layer_name
-                            link_kml.url = (
-                                GAM_GEOFLUX_URL
-                                + "/"
-                                + layer_schema
-                                + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
-                                + layer_schema
-                                + "%3A"
-                                + layer.name()
-                                + "&outputFormat=kml"
-                            )
-                            link_kml.format = "KML"
-
-                            link_geojson = QgsAbstractMetadataBase.Link()
-                            link_geojson.name = "Format Geojson"
-                            link_geojson.type = "WWW:DOWNLOAD-1.0-http--download"
-                            link_geojson.description = layer_name
-                            link_geojson.url = (
-                                GAM_GEOFLUX_URL
-                                + "/"
-                                + layer_schema
-                                + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
-                                + layer_schema
-                                + "%3A"
-                                + layer.name()
-                                + "&outputFormat=application%2Fjson"
-                            )
-                            link_geojson.format = "GeoJSON"
-                            params_wms = {
-                                "request": "GetCapabilities",
-                                "service": "WMS",
-                            }
-                            response_wms = requests.get(
-                                link_wms.url, params=params_wms, timeout=HTTP_TIMEOUT
-                            )
-                            response_kml = requests.get(
-                                link_kml.url, timeout=HTTP_TIMEOUT
-                            )
-                            response_geojson = requests.get(
-                                link_geojson.url, timeout=HTTP_TIMEOUT
-                            )
-                            if response_kml.status_code == 200:
-                                list_links.append(link_kml)
-                            if response_geojson.status_code == 200:
-                                list_links.append(link_geojson)
-                            if response_wms.status_code == 200:
-                                list_links.append(link_wms)
-                        layer_meta.setLinks(list_links)
+                        layer_meta.setLinks(ext_links)
 
                         # On remplie la partie Emprise spatiale
                         source_crs = QgsCoordinateReferenceSystem(3945)
@@ -1098,81 +1029,12 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             description = value
                     elif child.text(2) == "Licence":
                         value = widget.currentText()
-                        link_metro = QgsAbstractMetadataBase.Link()
-                        link_metro.name = "Grenoble-Alpes Métropole"
-                        link_metro.type = "https"
-                        link_metro.description = "Site de la Métropole"
-                        link_metro.url = " https://www.grenoblealpesmetropole.fr/"
-                        link_metro.format = "HTTPS"
 
-                        list_links = [link_metro]
-
-                        link_wms = QgsAbstractMetadataBase.Link()
-                        link_wms.name = parent_text
-                        link_wms.type = "OGC-WMS Capabilities service (ver 1.3.0)"
-                        link_wms.description = parent_text
-                        link_wms.url = (
-                            GAM_GEOFLUX_URL + "/" + layer_schema + "/ows?SERVICE=WMS&"
+                        export_GS_links = value == LICENCE_OUVERTE_OD
+                        ext_links = create_links(
+                            layer_schema, parent_text, export_GS_links
                         )
-                        link_wms.format = "WMS"
-
-                        link_kml = QgsAbstractMetadataBase.Link()
-                        link_kml.name = "Format KML"
-                        link_kml.type = "WWW:DOWNLOAD-1.0-http--download"
-                        link_kml.description = parent_text
-                        link_kml.url = (
-                            GAM_GEOFLUX_URL
-                            + "/"
-                            + layer_schema
-                            + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
-                            + layer_schema
-                            + "%3A"
-                            + parent_text
-                            + "&outputFormat=kml"
-                        )
-                        link_kml.format = "KML"
-
-                        link_geojson = QgsAbstractMetadataBase.Link()
-                        link_geojson.name = "Format Geojson"
-                        link_geojson.type = "WWW:DOWNLOAD-1.0-http--download"
-                        link_geojson.description = parent_text
-                        link_geojson.url = (
-                            GAM_GEOFLUX_URL
-                            + "/"
-                            + layer_schema
-                            + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
-                            + layer_schema
-                            + "%3A"
-                            + parent_text
-                            + "&outputFormat=application%2Fjson"
-                        )
-                        link_geojson.format = "GeoJSON"
-
-                        metadata.setLicenses([value])
-                        licence = value
-                        if value == LICENCE_OUVERTE_OD:
-                            params_wms = {
-                                "request": "GetCapabilities",
-                                "service": "WMS",
-                            }
-                            response_wms = requests.get(
-                                link_wms.url, params=params_wms, timeout=HTTP_TIMEOUT
-                            )
-                            response_kml = requests.get(
-                                link_kml.url, timeout=HTTP_TIMEOUT
-                            )
-                            response_geojson = requests.get(
-                                link_geojson.url, timeout=HTTP_TIMEOUT
-                            )
-                            if response_kml.status_code == 200:
-                                list_links.append(link_kml)
-                            if response_geojson.status_code == 200:
-                                list_links.append(link_geojson)
-                            if response_wms.status_code == 200:
-                                list_links.append(link_wms)
-                            metadata.setLinks(list_links)
-                        else:
-                            metadata.setLinks(list_links)
+                        metadata.setLinks(ext_links)
                 update_requete = (
                     f"UPDATE sit_hydre.gest_bdd_rel_objets_thematique "
                     f'SET metadonnees = \'{{"licences": {json.dumps(licence)}, '

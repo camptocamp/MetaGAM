@@ -29,6 +29,10 @@ import xml.etree.ElementTree as ET
 import requests
 from requests.structures import CaseInsensitiveDict
 
+from qgis.core import QgsAbstractMetadataBase
+
+from .Meta_GAM_Geoserver import create_link, check_link
+
 GN_TIMEOUT = 30
 
 
@@ -216,3 +220,21 @@ def get_meta_date_gn(user, password, uuid):
         date_publication = date_element.text
         return date_publication
     return None
+
+
+def create_links(layer_schema, layer_name, export_GS_links):
+    link_metro = QgsAbstractMetadataBase.Link()
+    link_metro.name = "Grenoble-Alpes Métropole"
+    link_metro.type = "https"
+    link_metro.description = "Site de la Métropole"
+    link_metro.url = " https://www.grenoblealpesmetropole.fr/"
+    link_metro.format = "HTTPS"
+
+    list_links = [link_metro]
+
+    if export_GS_links:
+        for link_type in ["KML", "GeoJSON", "WMS"]:
+            link = create_link(layer_schema, layer_name, link_type)
+            if check_link(link):
+                list_links.append(link)
+    return list_links
