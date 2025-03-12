@@ -1,13 +1,17 @@
 """
 test fonctionnel principal
 """
-import os
 import unittest
+from unittest.mock import patch
 from nose.plugins.attrib import attr
 from requests.structures import CaseInsensitiveDict
 from ..Meta_GAM_Geonetwork import connexion_geonetwork, get_meta_date_gn
 
 
+@patch(
+    "meta_gam.Meta_GAM_Geonetwork.get_catalog",
+    lambda: "https://geonetwork.grenoblealpesmetropole.fr/geonetwork",
+)
 class MyTestClass(unittest.TestCase):
     """
     TestCase structure
@@ -17,7 +21,6 @@ class MyTestClass(unittest.TestCase):
         """
         Initialisation des objets nécessaires pour le test
         """
-        os.environ.pop("GN_URL", None)
         self.user = "TestCICD"
         self.password = "Git12345@"
         self.uuid = "26bc16bb-0a63-421d-8a07-c91ae7fbc8e7"
