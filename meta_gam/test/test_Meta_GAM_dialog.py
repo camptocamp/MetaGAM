@@ -71,18 +71,12 @@ class MetaGAMDialogTest(unittest.TestCase):
         with requests_mock.Mocker() as m:
             cookies = requests_mock.CookieJar()
             cookies.set("XSRF-TOKEN", "dummy_xsrf", path="/geonetwork")
-            m.post(
-                "http://geonetwork:8080/geonetwork/srv/eng/info",
-                text="",
-                cookies=cookies,
-            )
-            m.get("http://geonetwork:8080/geonetwork/srv/eng/info", text="")
             m.get(
                 "http://geonetwork:8080/geonetwork/srv/api/me",
                 json={"profile": "Admin"},
             )
             self.dialog.pbConnexion.click()
-            assert m.call_count == 3
+            assert m.call_count == 1
 
     def test_mocked_publish(self):
         tempLayer = QgsVectorLayer("polygon", "monPolygon", "memory")
@@ -98,18 +92,15 @@ class MetaGAMDialogTest(unittest.TestCase):
             with requests_mock.Mocker() as m:
                 cookies = requests_mock.CookieJar()
                 cookies.set("XSRF-TOKEN", "dummy_xsrf", path="/geonetwork")
-                m.post(
-                    "http://geonetwork:8080/geonetwork/srv/eng/info",
-                    text="",
-                    cookies=cookies,
-                )
-                m.get("http://geonetwork:8080/geonetwork/srv/eng/info", text="")
                 m.get("http://geonetwork:8080/geonetwork/srv/api/me", json=user_json)
                 m.get(
                     f"http://geonetwork:8080/geonetwork/srv/api/records/{self.id}/formatters/xml",
                     text='<main xmlns:gco="http://www.isotc211.org/2005/gco"><gco:Date>1-1-2011</gco:Date></main>',
                 )
-                m.post("http://geonetwork:8080/geonetwork/srv/api/records")
+                m.post(
+                    "http://geonetwork:8080/geonetwork/srv/api/records",
+                    json={"success": True},
+                )
 
                 def cb_status(cl):
                     cl.tree_checkbox_status = {0: True}
@@ -124,8 +115,9 @@ class MetaGAMDialogTest(unittest.TestCase):
                     "meta_gam.Meta_GAM_dialog.MetaGAMDialog.get_meta_ID",
                     lambda c, id: [self.id],
                 ):
+                    self.dialog.mgGN.connect("admin", "admin")
                     self.dialog.pbPost.click()
-                assert m.call_count == 8
+                assert m.call_count == 3
                 post_requests = [
                     r
                     for r in m.request_history

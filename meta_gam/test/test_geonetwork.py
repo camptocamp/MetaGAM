@@ -3,14 +3,10 @@ test fonctionnel principal
 """
 import unittest
 from ..Meta_GAM_Geonetwork import MetaGamGeonetwork
-from unittest.mock import patch
+from unittest.mock import patch, PropertyMock
 from nose.plugins.attrib import attr
 
 
-@patch(
-    "meta_gam.Meta_GAM_Geonetwork.get_catalog",
-    lambda: "https://geonetwork.grenoblealpesmetropole.fr/geonetwork",
-)
 class MyTestClass(unittest.TestCase):
     """
     TestCase structure
@@ -23,6 +19,14 @@ class MyTestClass(unittest.TestCase):
         self.user = "TestCICD"
         self.password = "Git12345@"
         self.uuid = "26bc16bb-0a63-421d-8a07-c91ae7fbc8e7"
+        self.patch = patch(
+            "meta_gam.Meta_GAM_Geonetwork.MetaGamGeonetwork.CATALOG",
+            new_callable=PropertyMock,
+        )
+        self.mock_gn = self.patch.__enter__()
+        self.mock_gn.return_value = (
+            "https://geonetwork.grenoblealpesmetropole.fr/geonetwork"
+        )
         self.mgGN = MetaGamGeonetwork()
         self.mgGN.connect(self.user, self.password)
 
@@ -31,6 +35,7 @@ class MyTestClass(unittest.TestCase):
         Nettoyage après le test si nécessaire
         """
         self.mgGN.close()
+        self.patch.__exit__(None, None, None)
 
     @attr("onlineGN")
     def test_connexionGeonetwork(self):

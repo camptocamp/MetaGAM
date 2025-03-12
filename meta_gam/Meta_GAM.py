@@ -29,6 +29,7 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 from .Meta_GAM_Admin_dialog import MetaGamAdminDialog
 from .Meta_GAM_dialog import MetaGAMDialog
+from .Meta_GAM_tools import ensure_temp_path
 
 # Initialize Qt resources from file resources.py
 from .resources import qInitResources, qCleanupResources
@@ -63,10 +64,8 @@ class MetaGAM:
             self.translator.load(locale_path)
             QCoreApplication.installTranslator(self.translator)
 
-        # Make sur temp path exists
-        temp_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), "temp")
-        if not os.path.exists(temp_file):
-            os.makedirs(temp_file)
+        # Make sure temp path exists
+        ensure_temp_path()
 
         # Declare instance attributes
         self.actions = []

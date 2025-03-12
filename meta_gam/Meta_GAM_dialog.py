@@ -69,6 +69,7 @@ from qgis.PyQt.uic import loadUiType
 
 from .Meta_GAM_constants import LICENCE_OUVERTE_OD, LICENCE_FERMEE, THEMES_INSPIRE
 from .Meta_GAM_Geonetwork import MetaGamGeonetwork, create_links
+from .Meta_GAM_Geoserver import check_link, GSLayerNotFound
 from .Meta_GAM_QMD_XML import clean_temp, create_zip, remove_all_zip_files
 
 # pylint: disable=too-many-lines
