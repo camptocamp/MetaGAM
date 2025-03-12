@@ -198,27 +198,30 @@ def get_meta_date_gn(user, password, uuid):
         password (str): mot de pass saisie dans le plugin.
         uuid (str): identifiant fiche de métadonnées.
     """
-    connexion_gn = connexion_geonetwork(user, password)
-    # group = connexion_gn[6]
-    headers_gn = connexion_gn[3]
-    headers_gn["Accept"] = "application/xml"
-    headers_gn["Content-Type"] = "application/xml"
-    response = requests.get(
-        connexion_gn[1]
-        + "/srv/api/records/"
-        + uuid
-        + "/formatters/xml?addSchemaLocation=false&increasePopularity=false&approved=false",
-        headers=headers_gn,
-        cookies={"XSRF-TOKEN": connexion_gn[2]},
-        auth=(connexion_gn[4], connexion_gn[5]),
-        timeout=GN_TIMEOUT,
-    )
-    if response.status_code == 200:
-        reponse_xml = response.text
-        root = ET.fromstring(reponse_xml)
-        date_element = root.find(".//{http://www.isotc211.org/2005/gco}Date")
-        date_publication = date_element.text
-        return date_publication
+    try:
+        connexion_gn = connexion_geonetwork(user, password)
+        # group = connexion_gn[6]
+        headers_gn = connexion_gn[3]
+        headers_gn["Accept"] = "application/xml"
+        headers_gn["Content-Type"] = "application/xml"
+        response = requests.get(
+            connexion_gn[1]
+            + "/srv/api/records/"
+            + uuid
+            + "/formatters/xml?addSchemaLocation=false&increasePopularity=false&approved=false",
+            headers=headers_gn,
+            cookies={"XSRF-TOKEN": connexion_gn[2]},
+            auth=(connexion_gn[4], connexion_gn[5]),
+            timeout=GN_TIMEOUT,
+        )
+        if response.status_code == 200:
+            reponse_xml = response.text
+            root = ET.fromstring(reponse_xml)
+            date_element = root.find(".//{http://www.isotc211.org/2005/gco}Date")
+            date_publication = date_element.text
+            return date_publication
+    except requests.RequestException:
+        pass
     return None
 
 
