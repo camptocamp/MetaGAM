@@ -7,10 +7,12 @@ import requests_mock
 from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsProject
 
 from meta_gam.Meta_GAM_dialog import MetaGAMDialog
+from meta_gam.Meta_GAM_tools import ensure_temp_path
 from meta_gam.test.utilities import get_qgis_app
 
 
 QGIS_APP = get_qgis_app()
+ensure_temp_path()
 
 
 def get_link_protocols(mock):
@@ -42,9 +44,9 @@ def mock_geoserver():
             "https://geoflux.grenoblealpesmetropole.fr/geoserver/urba_plui_public/ows",
             text=ows_callback,
         )
-        m.post(requests_mock.ANY)
-        m.get("http://geonetwork:8080/geonetwork/srv/api/me", json={"profile": "admin"})
-        m.get("http://geonetwork:8080/geonetwork/srv/eng/info")
+        m.get(
+            "http://geonetwork:8080/geonetwork/srv/api/me", json={"profile": "admin"}
+        ),
         m.get(
             re.compile("http://geonetwork:8080/geonetwork/srv/api/records"),
             status_code=404,
@@ -104,8 +106,9 @@ def test_zip():
     dialog.treeWidget.itemWidget(root.child(0), 0).setChecked(True)
 
     with mock_geoserver() as m:
+        dialog.mgGN.connect("admin", "admin")
         dialog.add_INSPIRE_to_xml()
-        assert m.call_count == 8
+        assert m.call_count == 6
         link_protocols = get_link_protocols(m)
         assert link_protocols == LINK_PROTOCOLS_REF
 

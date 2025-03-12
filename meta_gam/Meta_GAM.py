@@ -29,6 +29,7 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 from .Meta_GAM_Admin_dialog import MetaGamAdminDialog
 from .Meta_GAM_dialog import MetaGAMDialog
+from .Meta_GAM_tools import ensure_temp_path
 
 # Initialize Qt resources from file resources.py
 from .resources import qInitResources, qCleanupResources
@@ -62,6 +63,9 @@ class MetaGAM:
             self.translator = QTranslator()
             self.translator.load(locale_path)
             QCoreApplication.installTranslator(self.translator)
+
+        # Make sure temp path exists
+        ensure_temp_path()
 
         # Declare instance attributes
         self.actions = []
@@ -189,6 +193,8 @@ class MetaGAM:
             self.iface.removePluginMenu(self.tr("&MetaGAM"), action)
             self.iface.removePluginMenu(self.tr("&AdminMenu"), action)
             self.iface.removeToolBarIcon(action)
+        if self.dlg1 is not None:
+            self.dlg1.mgGN.close()
         qCleanupResources()
 
     def run(self):

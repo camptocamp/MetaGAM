@@ -24,6 +24,7 @@
 
 import json
 import os
+from glob import glob
 import re
 
 import psycopg2
@@ -67,12 +68,7 @@ from qgis.PyQt.QtWidgets import (
 from qgis.PyQt.uic import loadUiType
 
 from .Meta_GAM_constants import LICENCE_OUVERTE_OD, LICENCE_FERMEE, THEMES_INSPIRE
-from .Meta_GAM_Geonetwork import (
-    connexion_geonetwork,
-    get_meta_date_gn,
-    post_meta_gn,
-    create_links,
-)
+from .Meta_GAM_Geonetwork import MetaGamGeonetwork, create_links
 from .Meta_GAM_Geoserver import check_link, GSLayerNotFound
 from .Meta_GAM_QMD_XML import clean_temp, create_zip, remove_all_zip_files
 
@@ -94,6 +90,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         """Constructor."""
         super().__init__(parent)
         self.setupUi(self)
+        self.mgGN = MetaGamGeonetwork()
         self.mb = QgsMessageBar(self)
         self.layout().insertWidget(0, self.mb)
 
@@ -207,9 +204,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         except psycopg2.Error as e:
             if reraise:
                 raise e
-            else:
-                self.push_message_bar(str(e), Qgis.Critical)
-                return False, None
+            self.push_message_bar(str(e), Qgis.Critical)
+            return False, None
 
     def get_metadata_gestion_tab(self):
         """
@@ -1291,19 +1287,6 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             if i in checkbox_status:
                 checkbox.setChecked(checkbox_status[i])
 
-    def get_auth_gn(self):
-        """_summary_
-
-        Fonction qui récupere les identifiants saisies par l'utilisateur.
-
-        Returns:
-            username (str): nom d'utilisateur saisie dans le plugin.
-            motdepass (str): mot de pass saisie dans le plugin.
-        """
-        username = self.leUsername.text()
-        motdepass = self.lePassword.text()
-        return (username, motdepass)
-
     def check_connexion_gn(self):
         """_summary_
 
@@ -1311,8 +1294,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         un message en fonction de la réponse.
 
         """
-        username = self.get_auth_gn()[0]
-        motdepass = self.get_auth_gn()[1]
+        username = self.leUsername.text()
+        motdepass = self.lePassword.text()
         if username == "" and motdepass == "":
             self.push_message_bar(
                 "Vous n'avez pas saisi de username ni de mot de passe", Qgis.Critical
@@ -1324,7 +1307,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                 "Vous n'avez pas saisi de mot de passe", Qgis.Critical
             )
         else:
-            if connexion_geonetwork(username, motdepass)[0]:
+            if self.mgGN.connect(username, motdepass):
                 self.push_message_bar(
                     "Connexion reussie!! Postez l'ensemble des fiches métadonnées "
                     'sur notre Geonetwork avec le bouton "Envoi".'
@@ -1337,7 +1320,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                     "Username ou mot de passe incorrect!!", Qgis.Critical
                 )
 
-    def populate_tab_gn(self):
+    def populate_tab_gn(self, success_dict):
         """_summary_
 
         Fonction qui va gérérer l'affichage des fiches qui sont à envoyer
@@ -1346,12 +1329,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         """
         connexion = self.connexion_postgresql()[1]
         cur = connexion.cursor()
-        catalog_gn = (
-            os.environ.get(
-                "GN_URL", "https://geonetwork.grenoblealpesmetropole.fr/geonetwork"
-            )
-            + "/srv/fre/catalog.search#/metadata/"
-        )
+        catalog_gn = self.mgGN.CATALOG + "/srv/fre/catalog.search#/metadata/"
         self.model = QStandardItemModel(
             0, 2
         )  # pylint: disable=attribute-defined-outside-init
@@ -1363,30 +1341,43 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             layer_name = layer.name()
             layer_meta = layer.metadata()
             uuid = layer_meta.identifier()
-            # print('uuid : %',uuid)
             meta_id = self.get_meta_ID(uuid)
             if self.tree_checkbox_status is not None:
                 if self.tree_checkbox_status.get(i):
                     meta_id = meta_id[0]
                     item1 = QStandardItem(layer_name)
-                    item2 = QStandardItem(catalog_gn + meta_id)
-                    item2.setForeground(QBrush(QColor("blue"), style=Qt.SolidPattern))
-                    item2.setTextAlignment(Qt.AlignCenter)
-                    item2.setSelectable(True)
-                    item2.setEditable(False)
-                    item2.setData(
-                        catalog_gn + meta_id, Qt.UserRole
-                    )  # Stocke l'URL dans les données utilisateur
-                    self.model.appendRow([item1, item2])
-                    meta_lien = catalog_gn + meta_id
-                    update_meta_link = (
-                        "UPDATE sit_hydre.gest_bdd_rel_objets_thematique "
-                        f"SET metadonnees_lien = '{meta_lien}', "
-                        f"metadonnees_titre = '{layer_name}' "
-                        f"WHERE metadonnees_id = '{meta_id}'"
+                    if success_dict[meta_id]["status_code"] < 400:
+                        item2 = QStandardItem(catalog_gn + meta_id)
+                        item2.setForeground(
+                            QBrush(QColor("blue"), style=Qt.SolidPattern)
+                        )
+                        item2.setTextAlignment(Qt.AlignCenter)
+                        item2.setSelectable(True)
+                        item2.setData(
+                            catalog_gn + meta_id, Qt.UserRole
+                        )  # Stocke l'URL dans les données utilisateur
+                        meta_lien = catalog_gn + meta_id
+                        update_meta_link = (
+                            "UPDATE sit_hydre.gest_bdd_rel_objets_thematique "
+                            f"SET metadonnees_lien = '{meta_lien}', "
+                            f"metadonnees_titre = '{layer_name}' "
+                            f"WHERE metadonnees_id = '{meta_id}'"
+                        )
+                        cur.execute(update_meta_link)
+                        connexion.commit()
+                    else:
+                        item2 = QStandardItem(
+                            f"Error: {success_dict[meta_id]['status_code']}"
+                        )
+                        item2.setForeground(
+                            QBrush(QColor("red"), style=Qt.SolidPattern)
+                        )
+                    item2.setToolTip(
+                        f"[{success_dict[meta_id]['status_code']}] "
+                        f"{success_dict[meta_id]['detail']}"
                     )
-                    cur.execute(update_meta_link)
-                    connexion.commit()
+                    item2.setEditable(False)
+                    self.model.appendRow([item1, item2])
         cur.close()
         connexion.close()
         self.tableGN.setModel(self.model)
@@ -1459,8 +1450,6 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
 
         """
         project = QgsProject.instance()
-        username = self.get_auth_gn()[0]
-        motdepass = self.get_auth_gn()[1]
         for i, layer in enumerate(project.mapLayers().values()):
             layer_name = layer.name()
             layer_meta = layer.metadata()
@@ -1474,6 +1463,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                     layer_dominateur = self.get_layer_denominateur(layer)
                     if self.tree_checkbox_status.get(i):
                         meta_id = meta_id[0]
+                        date_publication = self.mgGN.get_meta_date_gn(meta_id)
                         # perform GS layer verifications if checked
                         if self.checkLinks.isChecked():
                             issues = []
@@ -1488,9 +1478,6 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             if issues:
                                 self.push_message_bar("\n".join(issues), Qgis.Warning)
 
-                        date_publication = get_meta_date_gn(
-                            username, motdepass, meta_id
-                        )
                         create_zip(
                             layer_name,
                             meta_id,
@@ -1533,9 +1520,16 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         remove_all_zip_files()
         self.add_INSPIRE_to_xml()
         clean_temp()
-        connexion_gn = self.get_auth_gn()
-        post_meta_gn(connexion_gn[0], connexion_gn[1])
+        success_dict = {}
+        current_file_path = os.path.abspath(__file__)
+        temp_file = os.path.join(os.path.dirname(current_file_path), "temp")
+        filelist = glob(f"{temp_file}/*.zip")
+        for i, filename in enumerate(filelist):
+            uuid, _ = os.path.splitext(os.path.basename(filename))
+            self.progressBar.setValue(int(100 * i / len(filelist)))
+            success_dict[uuid] = self.mgGN.post_meta_gn(filename)
         remove_all_zip_files()
+        return success_dict
 
     def update_progressbar(self):
         """_summary_
@@ -1546,8 +1540,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         self.progressBar.setRange(0, 100)
         self.progressBar.setValue(0)
         if self.check_tree_title():
-            self.launch_meta_post()
-            self.populate_tab_gn()
+            success_dict = self.launch_meta_post()
+            self.populate_tab_gn(success_dict)
             self.progressBar.setValue(100)
         else:
             self.push_message_bar(

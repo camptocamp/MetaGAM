@@ -22,12 +22,10 @@
  ***************************************************************************/
 """
 
-import json
 import os
 import xml.etree.ElementTree as ET
 
 import requests
-from requests.structures import CaseInsensitiveDict
 
 from qgis.core import QgsAbstractMetadataBase
 
@@ -37,6 +35,9 @@ GN_TIMEOUT = 30
 
 
 def get_catalog():
+    """
+    Retrouver l'URL du serveur geonetwork dans les variables d'environnemnt
+    """
     return os.environ.get(
         "GN_URL", "https://geonetwork.grenoblealpesmetropole.fr/geonetwork"
     )
@@ -45,174 +46,118 @@ def get_catalog():
 CATALOG = get_catalog()
 
 
-def connexion_geonetwork(user, password):
-    """_summary_
-
-    Cette fonction établis la connexion avec le serveur Geonetwork
-    en utilisant son API. La fonction utilise la bibliothèque Python
-    requests pour envoyer des requêtes HTTP au serveur GeoNetwork et
-    récupérer des informations. Elle envoie deux requêtes GET à deux
-    endpoints différents du serveur, en incluant les informations
-    d'authentification de l'utilisateur. La première requête est
-    utilisée pour récupérer un cookie de session, qui est stocké
-    localement dans un fichier cookie.txt. La seconde requête est
-    utilisée pour récupérer les informations de profil de l'utilisateur.
-
-    Args:
-        user (str): nom d'utilisateur saisie dans le plugin.
-        password (str): mot de pass saisie dans le plugin.
-
-    Returns:
-        res (booléen): un booléen qui indique si la connexion a réussi ou échoué.
-        CATALOG (str): l'URL de base du serveur GeoNetwork utilisé.
-        token(str): le jeton de sécurité XSRF utilisé pour les requêtes.
-        headers(str): les en-têtes HTTP utilisés pour les requêtes.
-        user(str): le nom d'utilisateur utilisé pour se connecter.
-        password(str): le mot de passe utilisé pour se connecter.
-        group(int): le groupe d'utilisateurs auquel appartient l'utilisateur
-                    connecté, ou None si aucun groupe n'a été trouvé
+class MetaGamGeonetwork(requests.Session):
     """
-    response = requests.post(
-        get_catalog() + "/srv/eng/info?type=me", timeout=GN_TIMEOUT
-    )
-    current_file_path = os.path.realpath(__file__)
-    temp_file = os.path.join(os.path.dirname(current_file_path), "temp")
-    if not os.path.exists(temp_file):
-        os.makedirs(temp_file)
-    with open(temp_file + "/cookie.txt", "w", encoding="utf8") as cookie:
-        cookie.write(str(response.cookies))
-    with open(temp_file + "/cookie.txt", "r", encoding="utf8") as file_one:
-        text = file_one.read()
-    start = "XSRF-TOKEN="
-    end = " for"
-    token = text[text.find(start) + len(start) : text.rfind(end)]
-    headers = CaseInsensitiveDict()
-    headers["Accept"] = "application/json"
-    headers["X-XSRF-TOKEN"] = token
-    response_author = requests.get(
-        get_catalog() + "/srv/eng/info?type=me",
-        headers=headers,
-        cookies={"XSRF-TOKEN": token},
-        auth=(user, password),
-        timeout=GN_TIMEOUT,
-    )
-    response_info = requests.get(
-        get_catalog() + "/srv/api/me",
-        headers=headers,
-        cookies={"XSRF-TOKEN": token},
-        auth=(user, password),
-        timeout=GN_TIMEOUT,
-    )
-    if (response_author.status_code) == 200:
-        res = True
-        res_text = response_info.text
-        res_json = json.loads(res_text)
-        profile = res_json["profile"]
-        if profile == "Reviewer":
-            group = res_json["groupsWithReviewer"][0]
-        elif profile == "Editor":
-            group = res_json["groupsWithEditor"][0]
-        elif profile == "UserAdmin":
-            group = res_json["groupsWithUserAdmin"][0]
-        else:
-            group = None
-    else:
-        res = False
-        group = None
-    return (res, get_catalog(), token, headers, user, password, group)
-
-
-def post_meta_gn(user, password):
-    """_summary_
-
-    Cette fonction  permet de poster des fichiers de métadonnées
-    sur GeoNetwork. Elle utilise la fonction connexionGeonetwork
-    pour établir une connexion à l'instance de GeoNetwork en fournissant
-    les informations d'authentification de l'utilisateur. Et fais
-    la mise à jour des fiches (si la fiche de métadonnées existe
-    déja alors elle sera écrasée par la nouvelle fiche).
-
-    Args:
-        user (str): nom d'utilisateur saisie dans le plugin.
-        password (str): mot de pass saisie dans le plugin.
+    Classe pour gérer les appels API vers le serveur geonetwork
     """
-    connexion_gn = connexion_geonetwork(user, password)
-    user_group = connexion_gn[6]
-    current_file_path = os.path.abspath(__file__)
-    temp_file = os.path.join(os.path.dirname(current_file_path), "temp")
-    if user_group is None:
-        for filename in os.listdir(temp_file):
-            os.path.join(temp_file, filename)
-            if filename.endswith(".zip"):
-                with open(temp_file + "/" + filename, "rb") as file:
-                    file_obj = file.read()
-                    file_basename = os.path.basename(filename)
-                    file_to_upload = {"file": (str(file_basename), file_obj)}
-                    finfo = {"fullPath": filename}
-                    _ = requests.post(
-                        connexion_gn[1]
-                        + "/srv/api/records?metadataType=METADATA&uuidProcessing=OVERWRITE&transformWith=_none_",
-                        headers=connexion_gn[3],
-                        cookies={"XSRF-TOKEN": connexion_gn[2]},
-                        auth=(connexion_gn[4], connexion_gn[5]),
-                        files=file_to_upload,
-                        data=finfo,
-                        timeout=GN_TIMEOUT,
-                    )
-    else:
-        user_group = str(user_group)
-        current_file_path = os.path.abspath(__file__)
-        temp_file = os.path.join(os.path.dirname(current_file_path), "temp")
-        for filename in os.listdir(temp_file):
-            os.path.join(temp_file, filename)
-            if filename.endswith(".zip"):
-                with open(temp_file + "/" + filename, "rb") as file:
-                    file_obj = file.read()
-                    file_basename = os.path.basename(filename)
-                    file_to_upload = {"file": (str(file_basename), file_obj)}
-                    finfo = {"fullPath": filename}
-                    _ = requests.post(
-                        connexion_gn[1]
-                        + "/srv/api/records?metadataType=METADATA&uuidProcessing=OVERWRITE&group="
-                        + user_group
-                        + "&transformWith=_none_",
-                        headers=connexion_gn[3],
-                        cookies={"XSRF-TOKEN": connexion_gn[2]},
-                        auth=(connexion_gn[4], connexion_gn[5]),
-                        files=file_to_upload,
-                        data=finfo,
-                        timeout=GN_TIMEOUT,
-                    )
+
+    def __init__(self, verifytls=True):
+        super().__init__()
+        self.verify = verifytls
+        self.connected = False
+        self.group = None
+        self.token = None
+
+    def connect(self, user, password):
+        """
+        Tente l'ouverture d'une connexion au serveur geonetwork
+        L'appel à cette fonction initialise les headers et cookies qui vont bien
+        pour les appels API suivants
+        Args:
+            user (str): nom d'utilisateur saisie dans le plugin.
+            password (str): mot de pass saisie dans le plugin.
+        Returns:
+            (booléen): un booléen qui indique si la connexion a réussi ou échoué.
 
 
-def get_meta_date_gn(user, password, uuid):
-    """_summary_
+        """
+        self.headers["Accept"] = "application/json"
+        self.auth = (user, password)
+        resp = self.get(f"{self.CATALOG}/srv/api/me")
+        if resp.status_code in [200, 204]:
+            self.token = self.cookies.get("XSRF-TOKEN")
+            self.headers["X-XSRF-TOKEN"] = self.token
+            user_infos = resp.json()
+            profile = user_infos["profile"]
 
-    Cette fonction récupere la date de publication pour une fiche donnée.
-    Elle utilise la fonction connexionGeonetwork pour établir une connexion
-    à l'instance de GeoNetwork en fournissant les informations
-    d'authentification de l'utilisateur.
+            if profile == "Reviewer":
+                self.group = user_infos["groupsWithReviewer"][0]
+            elif profile == "Editor":
+                self.group = user_infos["groupsWithEditor"][0]
+            elif profile == "UserAdmin":
+                self.group = user_infos["groupsWithUserAdmin"][0]
 
-    Args:
-        user (str): nom d'utilisateur saisie dans le plugin.
-        password (str): mot de pass saisie dans le plugin.
-        uuid (str): identifiant fiche de métadonnées.
-    """
-    try:
-        connexion_gn = connexion_geonetwork(user, password)
-        # group = connexion_gn[6]
-        headers_gn = connexion_gn[3]
-        headers_gn["Accept"] = "application/xml"
-        headers_gn["Content-Type"] = "application/xml"
-        response = requests.get(
-            connexion_gn[1]
+            self.connected = True
+            return True
+        return False
+
+    @property
+    def CATALOG(self):
+        """
+        Retrouve l'URL du serveur geonetwork dans les variables d'environnemnt
+        """
+        return os.environ.get(
+            "GN_URL", "https://geonetwork.grenoblealpesmetropole.fr/geonetwork"
+        )
+
+    def request(self, *args, **kwargs):
+        return super().request(
+            *args,
+            **{
+                "timeout": GN_TIMEOUT,
+                **kwargs,
+            },
+        )
+
+    def post_meta_gn(self, filepath):
+        """_summary_
+
+        Cette fonction  permet de poster des fichiers de métadonnées
+        sur GeoNetwork. Elle utilise la fonction connexionGeonetwork
+        pour établir une connexion à l'instance de GeoNetwork en fournissant
+        les informations d'authentification de l'utilisateur. Et fais
+        la mise à jour des fiches (si la fiche de métadonnées existe
+        déja alors elle sera écrasée par la nouvelle fiche).
+        """
+
+        post_url = (
+            f"{self.CATALOG}/srv/api/records?metadataType=METADATA"
+            "&uuidProcessing=OVERWRITE&transformWith=_none_"
+        )
+        if self.group is not None:
+            post_url += f"&group={self.group}"
+
+        filename = os.path.basename(filepath)
+        with open(filepath, "rb") as file:
+            file_to_upload = {"file": (str(filename), file)}
+            finfo = {"fullPath": filepath}
+            response = self.post(
+                post_url,
+                files=file_to_upload,
+                data=finfo,
+            )
+            return {
+                "status_code": response.status_code,
+                "detail": response.json(),
+            }
+
+    def get_meta_date_gn(self, uuid):
+        """_summary_
+
+        Cette fonction récupere la date de publication pour une fiche donnée.
+        Elle utilise la fonction connexionGeonetwork pour établir une connexion
+        à l'instance de GeoNetwork en fournissant les informations
+        d'authentification de l'utilisateur.
+
+        Args:
+            uuid (str): identifiant fiche de métadonnées.
+        """
+        response = self.get(
+            self.CATALOG
             + "/srv/api/records/"
             + uuid
             + "/formatters/xml?addSchemaLocation=false&increasePopularity=false&approved=false",
-            headers=headers_gn,
-            cookies={"XSRF-TOKEN": connexion_gn[2]},
-            auth=(connexion_gn[4], connexion_gn[5]),
-            timeout=GN_TIMEOUT,
+            headers={"Accept": "application/xml", "Content-Type": "application/xml"},
         )
         if response.status_code == 200:
             reponse_xml = response.text
@@ -220,9 +165,7 @@ def get_meta_date_gn(user, password, uuid):
             date_element = root.find(".//{http://www.isotc211.org/2005/gco}Date")
             date_publication = date_element.text
             return date_publication
-    except requests.RequestException:
-        pass
-    return None
+        return None
 
 
 def create_links(layer_schema, layer_name, export_GS_links, checkGS=True):
