@@ -28,7 +28,6 @@ import re
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
-import requests
 from qgis.core import (
     QgsBox3d,
     QgsMapLayerType,
@@ -38,12 +37,12 @@ from qgis.core import (
     QgsProject,
     QgsRectangle,
     QgsLayerMetadata,
-    QgsAbstractMetadataBase,
     QgsNativeMetadataValidator,
     QgsMapLayer,
     QgsWkbTypes,
 )
-from qgis.gui import QgsCheckableComboBox
+from qgis.gui import QgsCheckableComboBox, QgsMessageBar
+from qgis.core import Qgis
 from qgis.PyQt.QtCore import Qt, QUrl
 from qgis.PyQt.QtGui import (
     QBrush,
@@ -56,7 +55,6 @@ from qgis.PyQt.QtWidgets import (
     QDialog,
     QLabel,
     QLineEdit,
-    QMessageBox,
     QPushButton,
     QTableView,
     QTreeWidget,
@@ -68,7 +66,14 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.PyQt.uic import loadUiType
 
-from .Meta_GAM_Geonetwork import connexion_geonetwork, get_meta_date_gn, post_meta_gn
+from .Meta_GAM_constants import LICENCE_OUVERTE_OD, LICENCE_FERMEE, THEMES_INSPIRE
+from .Meta_GAM_Geonetwork import (
+    connexion_geonetwork,
+    get_meta_date_gn,
+    post_meta_gn,
+    create_links,
+)
+from .Meta_GAM_Geoserver import check_link, GSLayerNotFound
 from .Meta_GAM_QMD_XML import clean_temp, create_zip, remove_all_zip_files
 
 # pylint: disable=too-many-lines
@@ -77,14 +82,6 @@ from .Meta_GAM_QMD_XML import clean_temp, create_zip, remove_all_zip_files
 FORM_CLASS, _ = loadUiType(
     os.path.join(os.path.dirname(__file__), "Meta_GAM_dialog_base.ui")
 )
-
-LICENCE_OUVERTE_OD = "Licence ouverte (OpenDATA)"
-LICENCE_FERMEE = "Licence fermée (Uniquement en interne)"
-
-GAM_GEOFLUX_URL = "https://geoflux.grenoblealpesmetropole.fr/geoserver"
-THEMES_INSPIRE = "Thèmes INSPIRE"
-
-HTTP_TIMEOUT = 30
 
 
 class MetaGAMDialog(QDialog, FORM_CLASS):
@@ -97,6 +94,9 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         """Constructor."""
         super().__init__(parent)
         self.setupUi(self)
+        self.mb = QgsMessageBar(self)
+        self.layout().insertWidget(0, self.mb)
+
         self.treeWidget = self.findChild(QTreeWidget, "treeWidget")
         self.tableGN = self.findChild(QTableView, "tableGN")
         self.tableGN.doubleClicked.connect(self.on_table_gn_double_click)
@@ -128,6 +128,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         self.UserPassword = None
         self.pbPost.setVisible(False)
         self.label_3.setVisible(False)
+        self.checkLinks.setVisible(False)
         self.frame_legende.setVisible(False)
         self.label_Green.setStyleSheet("color: green;")
         self.label_Red.setStyleSheet("color: red;")
@@ -207,7 +208,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             if reraise:
                 raise e
             else:
-                QMessageBox.critical(self, "Erreur", str(e), QMessageBox.Ok)
+                self.push_message_bar(str(e), Qgis.Critical)
                 return False, None
 
     def get_metadata_gestion_tab(self):
@@ -417,7 +418,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             # address.country = 'France'
                             meta_contact.addresses = [address]
 
-                        # On remplie la partie Résumé
+                        # On remplit la partie Résumé
                         res = None
                         if (
                             layer.type() != QgsMapLayerType.RasterLayer
@@ -543,78 +544,18 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             title = meta_titre
 
                         # On remplie la partie Liens
-                        link_metro = QgsAbstractMetadataBase.Link()
-                        link_metro.name = "Grenoble-Alpes Métropole"
-                        link_metro.type = "https"
-                        link_metro.description = "Site de la Métropole"
-                        link_metro.url = " https://www.grenoblealpesmetropole.fr/"
-                        link_metro.format = "HTTPS"
+                        if licence is not None:
+                            layer_meta.setLicenses([licence])
 
-                        list_links = [link_metro]
-                        if (
+                        export_GS_links = (
                             layer_meta.licenses() != []
                             and layer_meta.licenses()[0] == LICENCE_OUVERTE_OD
-                        ):
-                            link_wms = QgsAbstractMetadataBase.Link()
-                            link_wms.name = layer_name
-                            link_wms.type = "OGC-WMS Capabilities service (ver 1.3.0)"
-                            link_wms.description = layer_name
-                            link_wms.url = (
-                                GAM_GEOFLUX_URL + layer_schema + "/ows?SERVICE=WMS&"
-                            )
-                            link_wms.format = "WMS"
+                        )
+                        ext_links = create_links(
+                            layer_schema, layer_name, export_GS_links
+                        )
 
-                            link_kml = QgsAbstractMetadataBase.Link()
-                            link_kml.name = "Format KML"
-                            link_kml.type = "WWW:DOWNLOAD-1.0-http--download"
-                            link_kml.description = layer_name
-                            link_kml.url = (
-                                GAM_GEOFLUX_URL
-                                + layer_schema
-                                + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
-                                + layer_schema
-                                + "%3A"
-                                + layer.name()
-                                + "&outputFormat=kml"
-                            )
-                            link_kml.format = "KML"
-
-                            link_geojson = QgsAbstractMetadataBase.Link()
-                            link_geojson.name = "Format Geojson"
-                            link_geojson.type = "WWW:DOWNLOAD-1.0-http--download"
-                            link_geojson.description = layer_name
-                            link_geojson.url = (
-                                GAM_GEOFLUX_URL
-                                + layer_schema
-                                + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
-                                + layer_schema
-                                + "%3A"
-                                + layer.name()
-                                + "&outputFormat=application%2Fjson"
-                            )
-                            link_geojson.format = "GeoJSON"
-                            params_wms = {
-                                "request": "GetCapabilities",
-                                "service": "WMS",
-                            }
-                            response_wms = requests.get(
-                                link_wms.url, params=params_wms, timeout=HTTP_TIMEOUT
-                            )
-                            response_kml = requests.get(
-                                link_kml.url, timeout=HTTP_TIMEOUT
-                            )
-                            response_geojson = requests.get(
-                                link_kml.url, timeout=HTTP_TIMEOUT
-                            )
-                            if response_kml.status_code == 200:
-                                list_links.append(link_kml)
-                            if response_geojson.status_code == 200:
-                                list_links.append(link_geojson)
-                            if response_wms.status_code == 200:
-                                list_links.append(link_wms)
-                            layer_meta.setLinks(list_links)
-                        else:
-                            layer_meta.setLinks(list_links)
+                        layer_meta.setLinks(ext_links)
 
                         # On remplie la partie Emprise spatiale
                         source_crs = QgsCoordinateReferenceSystem(3945)
@@ -659,35 +600,33 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                         layer_meta.setTitle(title)
                         layer_meta.setContacts([meta_contact])
                         layer_meta.setExtent(ext)
-                        if licence is not None:
-                            layer_meta.setLicenses([licence])
                         layer.setMetadata(layer_meta)
-                    self.meta_message()
+                    self.push_message_bar(
+                        f"La fiche métadonnées {layer_name} est remplie!"
+                    )
                     # self.activateWindow() # pour remettre la page du plugin en premier plan
                     self.layers_tree()
                     self.set_tree()
                     self.tree_layers_color()
                     self.frame_legende.setVisible(True)
                 else:
-                    msg = QMessageBox()
-                    msg.setIcon(QMessageBox.Critical)
-                    msg.setText(
-                        "Aucune couche dans votre projet est une couche principale!"
+                    self.push_message_bar(
+                        "Aucune couche dans votre projet n'est une couche principale!",
+                        Qgis.Critical,
                     )
-                    msg.setWindowTitle("Erreur")
-                    msg.exec_()
 
-    def meta_message(self):
+    def push_message_bar(self, message, level=Qgis.Info):
         """_summary_
 
         Fonction qui renvoie aprés l'auto-remplissage des métadonnées.
 
         """
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Information)
-        msg.setText("Les fiches métadonnées sont remplies!")
-        msg.setWindowTitle("Information metadata")
-        # msg.exec_()
+        if level == Qgis.Critical:
+            self.mb.pushMessage(
+                message, level=level, duration=0
+            )  # keep displayed until manual cancel
+        else:
+            self.mb.pushMessage(message, level=level)
 
     def meta_qgis_validation(self, layer_name):
         """_summary_
@@ -976,18 +915,13 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         """
         self.get_tree_checkbox_status()
         if self.treeWidget.topLevelItemCount() == 0:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText("Vous n'avez pas encore lancé l'auto-remplissage !")
-            msg.setWindowTitle("Erreur!!")
-            msg.exec_()
+            self.push_message_bar(
+                "Vous n'avez pas encore lancé l'auto-remplissage !",
+                Qgis.Critical,
+            )
         else:
             self.update_meta()
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
-            msg.setText("Vos fiches sont à jour!")
-            msg.setWindowTitle("Info!")
-            msg.exec_()
+            self.push_message_bar("Vos fiches sont à jour!", Qgis.Success)
 
         self.tree_layers_color()
         self.set_tree_checkbox_status()
@@ -1095,79 +1029,12 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             description = value
                     elif child.text(2) == "Licence":
                         value = widget.currentText()
-                        link_metro = QgsAbstractMetadataBase.Link()
-                        link_metro.name = "Grenoble-Alpes Métropole"
-                        link_metro.type = "https"
-                        link_metro.description = "Site de la Métropole"
-                        link_metro.url = " https://www.grenoblealpesmetropole.fr/"
-                        link_metro.format = "HTTPS"
 
-                        list_links = [link_metro]
-
-                        link_wms = QgsAbstractMetadataBase.Link()
-                        link_wms.name = parent_text
-                        link_wms.type = "OGC-WMS Capabilities service (ver 1.3.0)"
-                        link_wms.description = parent_text
-                        link_wms.url = (
-                            GAM_GEOFLUX_URL + layer_schema + "/ows?SERVICE=WMS&"
+                        export_GS_links = value == LICENCE_OUVERTE_OD
+                        ext_links = create_links(
+                            layer_schema, parent_text, export_GS_links
                         )
-                        link_wms.format = "WMS"
-
-                        link_kml = QgsAbstractMetadataBase.Link()
-                        link_kml.name = "Format KML"
-                        link_kml.type = "WWW:DOWNLOAD-1.0-http--download"
-                        link_kml.description = parent_text
-                        link_kml.url = (
-                            GAM_GEOFLUX_URL
-                            + layer_schema
-                            + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
-                            + layer_schema
-                            + "%3A"
-                            + parent_text
-                            + "&outputFormat=kml"
-                        )
-                        link_kml.format = "KML"
-
-                        link_geojson = QgsAbstractMetadataBase.Link()
-                        link_geojson.name = "Format Geojson"
-                        link_geojson.type = "WWW:DOWNLOAD-1.0-http--download"
-                        link_geojson.description = parent_text
-                        link_geojson.url = (
-                            GAM_GEOFLUX_URL
-                            + layer_schema
-                            + "/ows?service=WFS&version=1.0.0&request=GetFeature&typeName="
-                            + layer_schema
-                            + "%3A"
-                            + parent_text
-                            + "&outputFormat=application%2Fjson"
-                        )
-                        link_geojson.format = "GeoJSON"
-
-                        metadata.setLicenses([value])
-                        licence = value
-                        if value == LICENCE_OUVERTE_OD:
-                            params_wms = {
-                                "request": "GetCapabilities",
-                                "service": "WMS",
-                            }
-                            response_wms = requests.get(
-                                link_wms.url, params=params_wms, timeout=HTTP_TIMEOUT
-                            )
-                            response_kml = requests.get(
-                                link_kml.url, timeout=HTTP_TIMEOUT
-                            )
-                            response_geojson = requests.get(
-                                link_kml.url, timeout=HTTP_TIMEOUT
-                            )
-                            if response_kml.status_code == 200:
-                                list_links.append(link_kml)
-                            if response_geojson.status_code == 200:
-                                list_links.append(link_geojson)
-                            if response_wms.status_code == 200:
-                                list_links.append(link_wms)
-                            metadata.setLinks(list_links)
-                        else:
-                            metadata.setLinks(list_links)
+                        metadata.setLinks(ext_links)
                 update_requete = (
                     f"UPDATE sit_hydre.gest_bdd_rel_objets_thematique "
                     f'SET metadonnees = \'{{"licences": {json.dumps(licence)}, '
@@ -1446,33 +1313,28 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         username = self.get_auth_gn()[0]
         motdepass = self.get_auth_gn()[1]
         if username == "" and motdepass == "":
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText("Vous n'avez pas saisie de username ni de mot de pass")
-            msg.setWindowTitle("Erreur!!")
-            msg.exec_()
+            self.push_message_bar(
+                "Vous n'avez pas saisi de username ni de mot de passe", Qgis.Critical
+            )
         elif username == "":
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText("Vous n'avez pas saisie de username")
-            msg.setWindowTitle("Erreur!!")
-            msg.exec_()
+            self.push_message_bar("Vous n'avez pas saisi de username", Qgis.Critical)
         elif motdepass == "":
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText("Vous n'avez pas saisie de mot de pass")
-            msg.setWindowTitle("Erreur!!")
-            msg.exec_()
+            self.push_message_bar(
+                "Vous n'avez pas saisi de mot de passe", Qgis.Critical
+            )
         else:
             if connexion_geonetwork(username, motdepass)[0]:
+                self.push_message_bar(
+                    "Connexion reussie!! Postez l'ensemble des fiches métadonnées "
+                    'sur notre Geonetwork avec le bouton "Envoi".'
+                )
                 self.pbPost.setVisible(True)
+                self.checkLinks.setVisible(True)
                 self.label_3.setVisible(True)
             else:
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Critical)
-                msg.setText("Username ou mot de pass incorrecte!!")
-                msg.setWindowTitle("Erreur!!")
-                msg.exec_()
+                self.push_message_bar(
+                    "Username ou mot de passe incorrect!!", Qgis.Critical
+                )
 
     def populate_tab_gn(self):
         """_summary_
@@ -1611,6 +1473,20 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                     layer_dominateur = self.get_layer_denominateur(layer)
                     if self.tree_checkbox_status.get(i):
                         meta_id = meta_id[0]
+                        # perform GS layer verifications if checked
+                        if self.checkLinks.isChecked():
+                            issues = []
+                            for link in layer_meta.links():
+                                if link.format != "HTTPS":
+                                    try:
+                                        check_link(link)
+                                    except GSLayerNotFound as err:
+                                        issues.append(
+                                            f"{link.type} link not valid ({err.msg})"
+                                        )
+                            if issues:
+                                self.push_message_bar("\n".join(issues), Qgis.Warning)
+
                         date_publication = get_meta_date_gn(
                             username, motdepass, meta_id
                         )
@@ -1673,13 +1549,10 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             self.populate_tab_gn()
             self.progressBar.setValue(100)
         else:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Critical)
-            msg.setText(
-                "Vous n'avez pas saisie un titre pour la couche à envoyer! \n"
-                "- Retournez dans ''Gestion de métadonnées'' et ajouter un titre "
+            self.push_message_bar(
+                "Vous n'avez pas saisi un titre pour la couche à envoyer! \n"
+                "- Retournez dans ''Gestion de métadonnées'' et ajoutez un titre "
                 "à l'endroit ou il n'y en a pas pour la couche en question. \n"
-                "- Ensuite sauvegarder les modifications."
+                "- Ensuite sauvegardez les modifications.",
+                Qgis.Critical,
             )
-            msg.setWindowTitle("Erreur!!")
-            msg.exec_()

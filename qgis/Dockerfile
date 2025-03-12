@@ -2,7 +2,7 @@ FROM qgis/qgis:release-3_16
 
 RUN apt  update \
      && apt install -y git libqt5sql5-psql
-RUN pip install pre-commit nose pylint
+RUN pip install pre-commit nose requests_mock pylint
 
 COPY pg_service.conf /
 

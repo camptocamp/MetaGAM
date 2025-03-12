@@ -1,5 +1,7 @@
 import re
 from zipfile import ZipFile
+from nose.plugins.attrib import attr
+import requests_mock
 
 from qgis.core import QgsVectorLayer, QgsDataSourceUri, QgsProject
 
@@ -10,6 +12,14 @@ from meta_gam.test.utilities import get_qgis_app
 QGIS_APP = get_qgis_app()
 
 
+def get_link_protocols(mock):
+    return set(
+        tuple([*r.qs.get("outputformat", [None]), *r.qs.get("service", [None])])
+        for r in mock.request_history
+    )
+
+
+@attr("localDB")
 def test_zip():
     dialog = MetaGAMDialog(None)
     uri = QgsDataSourceUri(
@@ -18,10 +28,82 @@ def test_zip():
         'table="urba_plui_public"."plan_2_c2_inf_99_decheterie_surf" (geom)\''
     )
     layer = QgsVectorLayer(uri.uri(), "plan_2_c2_inf_99_decheterie_surf", "postgres")
+    meta = layer.metadata()
+    meta.setLicenses(["Licence ouverte (OpenDATA)"])
+    layer.setMetadata(meta)
     QgsProject.instance().addMapLayer(layer)
 
-    dialog.auto_fill_meta()
+    with requests_mock.Mocker() as m:
+
+        def ows_callback(request, context):
+            if request.query == "request=getcapabilities&service=wms":
+                return (
+                    "<main><FeatureType><Name>urba_plui_public:plan_2_c2_inf_99_decheterie_surf"
+                    "</Name></FeatureType></main>"
+                )
+            if request.query == "request=getcapabilities&service=wfs":
+                return (
+                    "<main><FeatureType><Name>urba_plui_public:plan_2_c2_inf_99_decheterie_surf"
+                    "</Name></FeatureType></main>"
+                )
+            return ""
+
+        m.get(
+            "https://geoflux.grenoblealpesmetropole.fr/geoserver/urba_plui_public/ows",
+            text=ows_callback,
+        )
+        dialog.auto_fill_meta()
+
+        assert m.call_count == 4
+        link_protocols = get_link_protocols(m)
+        assert link_protocols == {
+            (None, "wms"),
+            (None, "wfs"),
+            ("kml", "wfs"),
+            ("application/json", "wfs"),
+        }
+
     root = dialog.treeWidget.invisibleRootItem()
+    abstract_treeitem = next(
+        root.child(0).child(i)
+        for i in range(root.child(0).childCount())
+        if root.child(0).child(i).text(2) == "Licence"
+    )
+    dialog.treeWidget.itemWidget(abstract_treeitem, 3).setCurrentIndex(1)
+    assert (
+        dialog.treeWidget.itemWidget(abstract_treeitem, 3).currentText()
+        == "Licence ouverte (OpenDATA)"
+    )
+
+    with requests_mock.Mocker() as m:
+
+        def ows_callback(request, context):
+            if request.query == "request=getcapabilities&service=wms":
+                return (
+                    "<main><FeatureType><Name>urba_plui_public:plan_2_c2_inf_99_decheterie_surf"
+                    "</Name></FeatureType></main>"
+                )
+            if request.query == "request=getcapabilities&service=wfs":
+                return (
+                    "<main><FeatureType><Name>urba_plui_public:plan_2_c2_inf_99_decheterie_surf"
+                    "</Name></FeatureType></main>"
+                )
+            return ""
+
+        m.get(
+            "https://geoflux.grenoblealpesmetropole.fr/geoserver/urba_plui_public/ows",
+            text=ows_callback,
+        )
+        dialog.update_meta()
+
+        assert m.call_count == 4
+        link_protocols = get_link_protocols(m)
+        assert link_protocols == {
+            (None, "wms"),
+            (None, "wfs"),
+            ("kml", "wfs"),
+            ("application/json", "wfs"),
+        }
     dialog.treeWidget.itemWidget(root.child(0), 0).setChecked(True)
 
     dialog.add_INSPIRE_to_xml()
@@ -39,4 +121,5 @@ def test_zip():
     )
 
     with open("./test/dechetterie.xml", "rb") as f:
-        assert xml_generic_dates == f.read()
+        xml_ref = f.read()
+        assert xml_generic_dates == xml_ref

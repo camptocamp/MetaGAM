@@ -29,11 +29,20 @@ import xml.etree.ElementTree as ET
 import requests
 from requests.structures import CaseInsensitiveDict
 
+from qgis.core import QgsAbstractMetadataBase
+
+from .Meta_GAM_Geoserver import create_link, check_link, GSLayerNotFound
+
 GN_TIMEOUT = 30
 
-CATALOG = os.environ.get(
-    "GN_URL", "https://geonetwork.grenoblealpesmetropole.fr/geonetwork"
-)
+
+def get_catalog():
+    return os.environ.get(
+        "GN_URL", "https://geonetwork.grenoblealpesmetropole.fr/geonetwork"
+    )
+
+
+CATALOG = get_catalog()
 
 
 def connexion_geonetwork(user, password):
@@ -63,7 +72,9 @@ def connexion_geonetwork(user, password):
         group(int): le groupe d'utilisateurs auquel appartient l'utilisateur
                     connecté, ou None si aucun groupe n'a été trouvé
     """
-    response = requests.post(CATALOG + "/srv/eng/info?type=me", timeout=GN_TIMEOUT)
+    response = requests.post(
+        get_catalog() + "/srv/eng/info?type=me", timeout=GN_TIMEOUT
+    )
     current_file_path = os.path.realpath(__file__)
     temp_file = os.path.join(os.path.dirname(current_file_path), "temp")
     if not os.path.exists(temp_file):
@@ -79,14 +90,14 @@ def connexion_geonetwork(user, password):
     headers["Accept"] = "application/json"
     headers["X-XSRF-TOKEN"] = token
     response_author = requests.get(
-        CATALOG + "/srv/eng/info?type=me",
+        get_catalog() + "/srv/eng/info?type=me",
         headers=headers,
         cookies={"XSRF-TOKEN": token},
         auth=(user, password),
         timeout=GN_TIMEOUT,
     )
     response_info = requests.get(
-        CATALOG + "/srv/api/me",
+        get_catalog() + "/srv/api/me",
         headers=headers,
         cookies={"XSRF-TOKEN": token},
         auth=(user, password),
@@ -108,7 +119,7 @@ def connexion_geonetwork(user, password):
     else:
         res = False
         group = None
-    return (res, CATALOG, token, headers, user, password, group)
+    return (res, get_catalog(), token, headers, user, password, group)
 
 
 def post_meta_gn(user, password):
@@ -209,3 +220,26 @@ def get_meta_date_gn(user, password, uuid):
         date_publication = date_element.text
         return date_publication
     return None
+
+
+def create_links(layer_schema, layer_name, export_GS_links, checkGS=True):
+    link_metro = QgsAbstractMetadataBase.Link()
+    link_metro.name = "Grenoble-Alpes Métropole"
+    link_metro.type = "https"
+    link_metro.description = "Site de la Métropole"
+    link_metro.url = " https://www.grenoblealpesmetropole.fr/"
+    link_metro.format = "HTTPS"
+
+    list_links = [link_metro]
+
+    if export_GS_links:
+        for link_type in ["KML", "GeoJSON", "WMS", "WFS"]:
+            link = create_link(layer_schema, layer_name, link_type)
+            try:
+                # layer validation currently always enforced
+                # here not depending on checkbox
+                check_link(link)
+                list_links.append(link)
+            except GSLayerNotFound:
+                pass
+    return list_links
