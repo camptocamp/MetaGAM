@@ -51,6 +51,12 @@ def create_url(layer_schema, layer_name, link_type):
     )
 
 
+CAPABILITIES_PATTERNS = {
+    "WMS": "Layer/Layer",
+    "WFS": "FeatureType",
+}
+
+
 def check_link(link):
     if link.format in ["WMS", "WFS"]:
         params = {"request": "GetCapabilities", "service": link.format}
@@ -61,10 +67,12 @@ def check_link(link):
         if response.status_code == 200:
             try:
                 capabilities = etree.fromstring(response.content)
+                capabilities_pattern = CAPABILITIES_PATTERNS[link.format]
                 if any(
                     el
                     for el in capabilities.iterfind(
-                        ".//FeatureType", capabilities.nsmap
+                        f".//{capabilities_pattern}",
+                        capabilities.nsmap,
                     )
                     if link.name in el.find("Name", capabilities.nsmap).text
                 ):

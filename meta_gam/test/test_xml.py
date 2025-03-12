@@ -1,4 +1,5 @@
 import re
+from contextlib import contextmanager
 from zipfile import ZipFile
 from nose.plugins.attrib import attr
 import requests_mock
@@ -16,7 +17,47 @@ def get_link_protocols(mock):
     return set(
         tuple([*r.qs.get("outputformat", [None]), *r.qs.get("service", [None])])
         for r in mock.request_history
+        if r.qs.get("outputformat") or r.qs.get("service")
     )
+
+
+@contextmanager
+def mock_geoserver():
+    with requests_mock.Mocker() as m:
+
+        def ows_callback(request, context):
+            if request.query == "request=getcapabilities&service=wms":
+                return (
+                    "<main><Layer><Layer><Name>urba_plui_public:plan_2_c2_inf_99_decheterie_surf"
+                    "</Name></Layer></Layer></main>"
+                )
+            if request.query == "request=getcapabilities&service=wfs":
+                return (
+                    "<main><FeatureType><Name>urba_plui_public:plan_2_c2_inf_99_decheterie_surf"
+                    "</Name></FeatureType></main>"
+                )
+            return ""
+
+        m.get(
+            "https://geoflux.grenoblealpesmetropole.fr/geoserver/urba_plui_public/ows",
+            text=ows_callback,
+        )
+        m.post(requests_mock.ANY)
+        m.get("http://geonetwork:8080/geonetwork/srv/api/me", json={"profile": "admin"})
+        m.get("http://geonetwork:8080/geonetwork/srv/eng/info")
+        m.get(
+            re.compile("http://geonetwork:8080/geonetwork/srv/api/records"),
+            status_code=404,
+        )
+        yield m
+
+
+LINK_PROTOCOLS_REF = {
+    (None, "wms"),
+    (None, "wfs"),
+    ("kml", "wfs"),
+    ("application/json", "wfs"),
+}
 
 
 @attr("localDB")
@@ -33,35 +74,13 @@ def test_zip():
     layer.setMetadata(meta)
     QgsProject.instance().addMapLayer(layer)
 
-    with requests_mock.Mocker() as m:
+    with mock_geoserver() as m:
 
-        def ows_callback(request, context):
-            if request.query == "request=getcapabilities&service=wms":
-                return (
-                    "<main><FeatureType><Name>urba_plui_public:plan_2_c2_inf_99_decheterie_surf"
-                    "</Name></FeatureType></main>"
-                )
-            if request.query == "request=getcapabilities&service=wfs":
-                return (
-                    "<main><FeatureType><Name>urba_plui_public:plan_2_c2_inf_99_decheterie_surf"
-                    "</Name></FeatureType></main>"
-                )
-            return ""
-
-        m.get(
-            "https://geoflux.grenoblealpesmetropole.fr/geoserver/urba_plui_public/ows",
-            text=ows_callback,
-        )
         dialog.auto_fill_meta()
 
         assert m.call_count == 4
         link_protocols = get_link_protocols(m)
-        assert link_protocols == {
-            (None, "wms"),
-            (None, "wfs"),
-            ("kml", "wfs"),
-            ("application/json", "wfs"),
-        }
+        assert link_protocols == LINK_PROTOCOLS_REF
 
     root = dialog.treeWidget.invisibleRootItem()
     abstract_treeitem = next(
@@ -75,38 +94,21 @@ def test_zip():
         == "Licence ouverte (OpenDATA)"
     )
 
-    with requests_mock.Mocker() as m:
+    with mock_geoserver() as m:
 
-        def ows_callback(request, context):
-            if request.query == "request=getcapabilities&service=wms":
-                return (
-                    "<main><FeatureType><Name>urba_plui_public:plan_2_c2_inf_99_decheterie_surf"
-                    "</Name></FeatureType></main>"
-                )
-            if request.query == "request=getcapabilities&service=wfs":
-                return (
-                    "<main><FeatureType><Name>urba_plui_public:plan_2_c2_inf_99_decheterie_surf"
-                    "</Name></FeatureType></main>"
-                )
-            return ""
-
-        m.get(
-            "https://geoflux.grenoblealpesmetropole.fr/geoserver/urba_plui_public/ows",
-            text=ows_callback,
-        )
         dialog.update_meta()
 
         assert m.call_count == 4
         link_protocols = get_link_protocols(m)
-        assert link_protocols == {
-            (None, "wms"),
-            (None, "wfs"),
-            ("kml", "wfs"),
-            ("application/json", "wfs"),
-        }
+        assert link_protocols == LINK_PROTOCOLS_REF
     dialog.treeWidget.itemWidget(root.child(0), 0).setChecked(True)
 
-    dialog.add_INSPIRE_to_xml()
+    with mock_geoserver() as m:
+        dialog.add_INSPIRE_to_xml()
+        assert m.call_count == 8
+        link_protocols = get_link_protocols(m)
+        assert link_protocols == LINK_PROTOCOLS_REF
+
     meta_ids = dialog.get_meta_ID(layer.metadata().identifier())
     with ZipFile(f"./temp/{meta_ids[0]}.zip") as z:
         xml = z.read(f"{meta_ids[0]}/metadata/metadata.xml")
