@@ -20,7 +20,7 @@ class MyTestClass(unittest.TestCase):
         os.environ.pop("GN_URL", None)
         self.user = "TestCICD"
         self.password = "Git12345@"
-        self.uuid = "1031e99c-cd4d-444c-8be9-82848956c598"
+        self.uuid = "26bc16bb-0a63-421d-8a07-c91ae7fbc8e7"
 
     def tearDown(self):
         """
@@ -31,7 +31,7 @@ class MyTestClass(unittest.TestCase):
     @attr("onlineGN")
     def test_connexionGeonetwork(self):
         """
-        Appel de la fonction à tester
+        Test de la connexion au GeoNetwork en ligne
         """
         result = connexion_geonetwork(self.user, self.password)
 
@@ -60,10 +60,9 @@ class MyTestClass(unittest.TestCase):
     @attr("onlineGN")
     def test_getMetaDateGN(self):
         """
-        Appel de la fonction à tester
+        Test d'accès à une ressource du Geonetwork en ligne
         """
         date_publication = get_meta_date_gn(self.user, self.password, self.uuid)
-
         self.assertIsNotNone(
             date_publication
         )  # Vérifier que la date de publication n'est pas None qui veut dire que la fiche existe
