@@ -16,7 +16,18 @@
 # This specific template is located at:
 # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
 
+variables:
+  POSTGRES_USER: geonetwork
+  POSTGRES_PASSWORD: geonetwork
+  POSTGRES_DB: geonetwork
+  PGHOST: database
+  PGDATABASE: sig
+  PGUSER: geonetwork
+  PGPASSWORD: geonetwork
+
+
 stages:          # List of stages for jobs, and their order of execution
+  - docker
   - lint
 
 install-lint-base-runner:
@@ -31,3 +42,23 @@ install-lint-base-runner:
     - echo "Linting code... This will take about 10 seconds."
     - /venv/bin/pre-commit run --all-files
     - echo "No lint issues found."
+
+run-docker-compo:
+  stage: docker
+  image: qgis/qgis:release-3_16
+  services:
+    - name: postgis/postgis:12-2.5
+      alias: database
+  variables:
+    DOCKER_HOST: "tcp://docker:2375"
+  script:
+    - apt update
+    - apt install -y libqt5sql5-psql
+    - pip install nose requests_mock
+    - psql -d geonetwork -f ./postgres/sql/01_db_xsmall_hydre.sql
+    - cd meta_gam
+    - export PGSERVICEFILE=../qgis/pg_service.conf
+    - export GN_URL=http://geonetwork:8080/geonetwork
+    # skip tests which depend on a running local geonetwork server
+    - export TEST_SELECTOR='-a !localGN'
+    - xvfb-run make test
