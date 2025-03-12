@@ -105,7 +105,7 @@
       <gmd:pointOfContact>
         <gmd:CI_ResponsibleParty>
           <gmd:individualName>
-            <gco:CharacterString>Service d'information territorial (SIXTUS)</gco:CharacterString>
+            <gco:CharacterString>Service d'information territorial (SIT)</gco:CharacterString>
           </gmd:individualName>
           <gmd:organisationName>
             <gco:CharacterString>Grenoble Alpes Métropole</gco:CharacterString>
@@ -233,7 +233,7 @@
             <gco:CharacterString>Unités statistiques</gco:CharacterString>
           </gmd:keyword>
           <gmd:keyword>
-            <gco:CharacterString>Bâtiments</gco:CharacterString>
+            <gco:CharacterString>Installations de suivi environnemental</gco:CharacterString>
           </gmd:keyword>
         </gmd:MD_Keywords>
       </gmd:descriptiveKeywords>

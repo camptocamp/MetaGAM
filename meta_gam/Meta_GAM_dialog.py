@@ -1029,7 +1029,8 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             description = value
                     elif child.text(2) == "Licence":
                         value = widget.currentText()
-
+                        metadata.setLicenses([value])
+                        licence = value
                         export_GS_links = value == LICENCE_OUVERTE_OD
                         ext_links = create_links(
                             layer_schema, parent_text, export_GS_links
