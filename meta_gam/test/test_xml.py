@@ -34,8 +34,23 @@ def test_zip():
     QgsProject.instance().addMapLayer(layer)
 
     with requests_mock.Mocker() as m:
+
+        def ows_callback(request, context):
+            if request.query == "request=getcapabilities&service=wms":
+                return (
+                    "<main><FeatureType><Name>urba_plui_public:plan_2_c2_inf_99_decheterie_surf"
+                    "</Name></FeatureType></main>"
+                )
+            if request.query == "request=getcapabilities&service=wfs":
+                return (
+                    "<main><FeatureType><Name>urba_plui_public:plan_2_c2_inf_99_decheterie_surf"
+                    "</Name></FeatureType></main>"
+                )
+            return ""
+
         m.get(
-            "https://geoflux.grenoblealpesmetropole.fr/geoserver/urba_plui_public/ows"
+            "https://geoflux.grenoblealpesmetropole.fr/geoserver/urba_plui_public/ows",
+            text=ows_callback,
         )
         dialog.auto_fill_meta()
 
@@ -61,8 +76,23 @@ def test_zip():
     )
 
     with requests_mock.Mocker() as m:
+
+        def ows_callback(request, context):
+            if request.query == "request=getcapabilities&service=wms":
+                return (
+                    "<main><FeatureType><Name>urba_plui_public:plan_2_c2_inf_99_decheterie_surf"
+                    "</Name></FeatureType></main>"
+                )
+            if request.query == "request=getcapabilities&service=wfs":
+                return (
+                    "<main><FeatureType><Name>urba_plui_public:plan_2_c2_inf_99_decheterie_surf"
+                    "</Name></FeatureType></main>"
+                )
+            return ""
+
         m.get(
-            "https://geoflux.grenoblealpesmetropole.fr/geoserver/urba_plui_public/ows"
+            "https://geoflux.grenoblealpesmetropole.fr/geoserver/urba_plui_public/ows",
+            text=ows_callback,
         )
         dialog.update_meta()
 

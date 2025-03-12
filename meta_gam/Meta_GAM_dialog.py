@@ -73,6 +73,7 @@ from .Meta_GAM_Geonetwork import (
     post_meta_gn,
     create_links,
 )
+from .Meta_GAM_Geoserver import check_link, GSLayerNotFound
 from .Meta_GAM_QMD_XML import clean_temp, create_zip, remove_all_zip_files
 
 # pylint: disable=too-many-lines
@@ -127,6 +128,7 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
         self.UserPassword = None
         self.pbPost.setVisible(False)
         self.label_3.setVisible(False)
+        self.checkLinks.setVisible(False)
         self.frame_legende.setVisible(False)
         self.label_Green.setStyleSheet("color: green;")
         self.label_Red.setStyleSheet("color: red;")
@@ -1322,7 +1324,12 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
             )
         else:
             if connexion_geonetwork(username, motdepass)[0]:
+                self.push_message_bar(
+                    "Connexion reussie!! Postez l'ensemble des fiches métadonnées "
+                    'sur notre Geonetwork avec le bouton "Envoi".'
+                )
                 self.pbPost.setVisible(True)
+                self.checkLinks.setVisible(True)
                 self.label_3.setVisible(True)
             else:
                 self.push_message_bar(
@@ -1466,6 +1473,20 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                     layer_dominateur = self.get_layer_denominateur(layer)
                     if self.tree_checkbox_status.get(i):
                         meta_id = meta_id[0]
+                        # perform GS layer verifications if checked
+                        if self.checkLinks.isChecked():
+                            issues = []
+                            for link in layer_meta.links():
+                                if link.format != "HTTPS":
+                                    try:
+                                        check_link(link)
+                                    except GSLayerNotFound as err:
+                                        issues.append(
+                                            f"{link.type} link not valid ({err.msg})"
+                                        )
+                            if issues:
+                                self.push_message_bar("\n".join(issues), Qgis.Warning)
+
                         date_publication = get_meta_date_gn(
                             username, motdepass, meta_id
                         )

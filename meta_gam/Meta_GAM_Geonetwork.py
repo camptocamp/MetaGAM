@@ -31,7 +31,7 @@ from requests.structures import CaseInsensitiveDict
 
 from qgis.core import QgsAbstractMetadataBase
 
-from .Meta_GAM_Geoserver import create_link, check_link
+from .Meta_GAM_Geoserver import create_link, check_link, GSLayerNotFound
 
 GN_TIMEOUT = 30
 
@@ -222,7 +222,7 @@ def get_meta_date_gn(user, password, uuid):
     return None
 
 
-def create_links(layer_schema, layer_name, export_GS_links):
+def create_links(layer_schema, layer_name, export_GS_links, checkGS=True):
     link_metro = QgsAbstractMetadataBase.Link()
     link_metro.name = "Grenoble-Alpes Métropole"
     link_metro.type = "https"
@@ -235,6 +235,11 @@ def create_links(layer_schema, layer_name, export_GS_links):
     if export_GS_links:
         for link_type in ["KML", "GeoJSON", "WMS", "WFS"]:
             link = create_link(layer_schema, layer_name, link_type)
-            if check_link(link):
+            try:
+                # layer validation currently always enforced
+                # here not depending on checkbox
+                check_link(link)
                 list_links.append(link)
+            except GSLayerNotFound:
+                pass
     return list_links

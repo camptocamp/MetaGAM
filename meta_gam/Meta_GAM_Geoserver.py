@@ -1,4 +1,5 @@
 import requests
+from lxml import etree
 
 from qgis.core import QgsAbstractMetadataBase
 
@@ -20,6 +21,12 @@ LINK_TYPES = {
 }
 
 LINK_FORMATS = {"GeoJSON": "application%2Fjson"}
+
+
+class GSLayerNotFound(Exception):
+    def __init__(self, msg):
+        super().__init__()
+        self.msg = msg
 
 
 def create_link(layer_schema, layer_name, link_type):
@@ -45,8 +52,34 @@ def create_url(layer_schema, layer_name, link_type):
 
 
 def check_link(link):
-    params = {}
     if link.format in ["WMS", "WFS"]:
         params = {"request": "GetCapabilities", "service": link.format}
-    response = requests.get(link.url, params=params, timeout=HTTP_TIMEOUT)
-    return response.status_code == 200
+        try:
+            response = requests.get(link.url, params=params, timeout=HTTP_TIMEOUT)
+        except requests.RequestException:
+            raise GSLayerNotFound(f"No response from {link.url}")
+        if response.status_code == 200:
+            try:
+                capabilities = etree.fromstring(response.content)
+                if any(
+                    el
+                    for el in capabilities.iterfind(
+                        ".//FeatureType", capabilities.nsmap
+                    )
+                    if link.name in el.find("Name", capabilities.nsmap).text
+                ):
+                    return
+                raise GSLayerNotFound(f"No layer {link.name} in {link.url}")
+            except etree.LxmlError:
+                pass
+        raise GSLayerNotFound(f"No layer {link.name} from {link.url}")
+
+    response = requests.get(link.url, timeout=HTTP_TIMEOUT)
+    if response.status_code == 200:
+        if "text/xml" in response.headers.get("Content-Type", ""):
+            if "ServiceException" in response.text:
+                raise GSLayerNotFound(
+                    f"Error response {response.status_code} from {link.url}"
+                )
+        return
+    raise GSLayerNotFound(f"Error response {response.status_code} from {link.url}")
