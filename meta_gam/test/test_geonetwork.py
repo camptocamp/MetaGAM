@@ -37,9 +37,8 @@ class MockedTestClass(unittest.TestCase):
             mgGN = MetaGamGeonetwork()
             mgGN.connect("user", "user")
             with NamedTemporaryFile() as f:
-                with self.assertRaises(Exception):
-                    resp = mgGN.post_meta_gn(f.name)
-                    assert resp == {"status_code": 200, "detail": {"OK": True}}
+                resp = mgGN.post_meta_gn(f.name)
+            assert resp == {"status_code": 200, "detail": "not OK"}
 
 
 class MyTestClass(unittest.TestCase):

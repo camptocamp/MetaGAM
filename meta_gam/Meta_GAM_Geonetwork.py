@@ -24,6 +24,7 @@
 
 import os
 import xml.etree.ElementTree as ET
+from simplejson.errors import JSONDecodeError
 
 import requests
 
@@ -136,9 +137,13 @@ class MetaGamGeonetwork(requests.Session):
                 files=file_to_upload,
                 data=finfo,
             )
+            try:
+                detail = response.json()
+            except JSONDecodeError:
+                detail = response.content.decode()
             return {
                 "status_code": response.status_code,
-                "detail": response.json(),
+                "detail": detail,
             }
 
     def get_meta_date_gn(self, uuid):
