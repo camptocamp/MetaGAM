@@ -2,9 +2,43 @@
 test fonctionnel principal
 """
 import unittest
+import requests_mock
+from tempfile import NamedTemporaryFile
 from ..Meta_GAM_Geonetwork import MetaGamGeonetwork
 from unittest.mock import patch, PropertyMock
 from nose.plugins.attrib import attr
+
+
+class MockedTestClass(unittest.TestCase):
+    def test_mocked_post(self):
+        with requests_mock.Mocker() as m:
+            m.get(
+                "http://geonetwork:8080/geonetwork/srv/api/me",
+                json={"profile": "Admin"},
+            )
+            m.post(
+                "http://geonetwork:8080/geonetwork/srv/api/records", json={"OK": True}
+            )
+            mgGN = MetaGamGeonetwork()
+            mgGN.connect("user", "user")
+            with NamedTemporaryFile() as f:
+                resp = mgGN.post_meta_gn(f.name)
+                assert resp == {"status_code": 200, "detail": {"OK": True}}
+
+    def test_mocked_post_no_json(self):
+        with requests_mock.Mocker() as m:
+            m.get(
+                "http://geonetwork:8080/geonetwork/srv/api/me",
+                json={"profile": "Admin"},
+            )
+            m.post(
+                "http://geonetwork:8080/geonetwork/srv/api/records", content=b"not OK"
+            )
+            mgGN = MetaGamGeonetwork()
+            mgGN.connect("user", "user")
+            with NamedTemporaryFile() as f:
+                resp = mgGN.post_meta_gn(f.name)
+            assert resp == {"status_code": 200, "detail": "not OK"}
 
 
 class MyTestClass(unittest.TestCase):
