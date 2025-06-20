@@ -591,9 +591,11 @@ class MetaGAMDialog(QDialog, FORM_CLASS):
                             layer_meta.setCategories(categories)
                         # On met à jour les metadonnées
                         layer_meta.setIdentifier(identif)
-                        layer_meta.setAbstract(res)
+                        if self.chImportAbstract.isChecked():
+                            layer_meta.setAbstract(res)
                         layer_meta.setLanguage("FRA")
-                        layer_meta.setTitle(title)
+                        if self.chImportTitle.isChecked():
+                            layer_meta.setTitle(title)
                         layer_meta.setContacts([meta_contact])
                         layer_meta.setExtent(ext)
                         layer.setMetadata(layer_meta)
