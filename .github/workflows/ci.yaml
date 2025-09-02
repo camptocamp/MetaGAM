@@ -50,7 +50,7 @@ jobs:
           apt install -y libqt5sql5-psql
           pip install nose requests_mock
       - name: Initialize DB
-        run: psql -d geonetwork -f ./postgres/sql/01_db_xsmall_hydre.sql
+        run: psql -h database -d geonetwork -f ./postgres/sql/01_db_xsmall_hydre.sql
       - name: Run tests
         # skip tests which depend on a running local geonetwork server
         run: |
