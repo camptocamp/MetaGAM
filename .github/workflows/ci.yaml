@@ -41,6 +41,8 @@ jobs:
     services:
       database:
         image: postgis/postgis:12-2.5
+    env:
+      DOCKER_HOST: "tcp://docker:2375"
 
     steps:
       - uses: actions/checkout@v4
@@ -50,7 +52,7 @@ jobs:
           apt install -y libqt5sql5-psql
           pip install nose requests_mock
       - name: Initialize DB
-        run: psql -h database -d geonetwork -f ./postgres/sql/01_db_xsmall_hydre.sql
+        run: psql -f ./postgres/sql/01_db_xsmall_hydre.sql
       - name: Run tests
         # skip tests which depend on a running local geonetwork server
         run: |
