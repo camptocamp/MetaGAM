@@ -38,12 +38,19 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: qgis/qgis:release-3_16
+      env:
+        PGHOST: database
+        PGDATABASE: sig
+        PGUSER: geonetwork
+        PGPASSWORD: geonetwork
 
     services:
       database:
         image: postgis/postgis:12-2.5
         env:
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: geonetwork
+          POSTGRES_PASSWORD: geonetwork
+          POSTGRES_DB: geonetwork
 
     steps:
       - uses: actions/checkout@v4
