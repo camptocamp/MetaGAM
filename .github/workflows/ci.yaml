@@ -38,11 +38,12 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: qgis/qgis:release-3_16
-      env:
-        DOCKER_HOST: "tcp://docker:2375"
+
     services:
       database:
         image: postgis/postgis:12-2.5
+        env:
+          POSTGRES_PASSWORD: postgres
 
     steps:
       - uses: actions/checkout@v4
