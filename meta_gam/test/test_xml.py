@@ -78,6 +78,8 @@ def test_zip():
 
     with mock_geoserver() as m:
 
+        dialog.chImportAbstract.setChecked(True)
+        dialog.chImportTitle.setChecked(True)
         dialog.auto_fill_meta()
 
         assert m.call_count == 4
