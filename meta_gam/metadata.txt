@@ -12,8 +12,8 @@ email=demande_sit@grenoblealpesmetropole.fr
 
 about=Automatise le remplissage des métadonnées via les informations déjà saisies en base de données postgresql. Et permet les utilisateurs à remplir les informations manquantes. Ainsi, il permet d'envoyer les métadonnées sur le Geonetwork de la métropole.
 
-tracker=http://bugs
-repository=http://repo
+tracker=https://github.com/camptocamp/MetaGAM/issues
+repository=https://github.com/camptocamp/MetaGAM
 # End of mandatory metadata
 
 # Recommended items:
@@ -25,7 +25,7 @@ hasProcessingProvider=no
 # Tags are comma separated with spaces allowed
 tags=export, inspire, metadata, web, python, Geonetwork
 
-homepage=http://homepage
+homepage=https://github.com/camptocamp/MetaGAM
 category=Plugins
 icon=icon.png
 # experimental flag
