@@ -52,7 +52,7 @@ class MyTestClass(unittest.TestCase):
         """
         self.user = "TestCICD"
         self.password = "Git12345@"
-        self.uuid = "26bc16bb-0a63-421d-8a07-c91ae7fbc8e7"
+        self.uuid = "26bc16bb-0a63-421d-8a07-c91ae7fbc8e9"
         self.patch = patch(
             "meta_gam.Meta_GAM_Geonetwork.MetaGamGeonetwork.CATALOG",
             new_callable=PropertyMock,
