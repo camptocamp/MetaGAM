@@ -7,7 +7,7 @@ name=MetaGAM
 qgisMinimumVersion=3.0
 description=Plugin qui permet de gérer les métadonnées uniques à la métropole de Grenoble.
 version=0.1
-author=Service SIT - Amr HAMADEH
+author=Amr HAMADEH, Steven PION-ROUX, Moritz KIRMSE
 email=demande_sit@grenoblealpesmetropole.fr
 
 about=Automatise le remplissage des métadonnées via les informations déjà saisies en base de données postgresql. Et permet les utilisateurs à remplir les informations manquantes. Ainsi, il permet d'envoyer les métadonnées sur le Geonetwork de la métropole.

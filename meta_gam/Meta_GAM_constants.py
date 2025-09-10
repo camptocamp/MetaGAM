@@ -9,6 +9,7 @@
         begin                : 2022-12-20
         git sha              : $Format:%H$
         copyright            : (C) 2022-2025 by Service SIT - Amr HAMADEH, Steven PION-ROUX
+                             : camptocamp - Moritz KIRMSE
         email                : demande_sit@grenoblealpesmetropole.fr
  ***************************************************************************/
 
